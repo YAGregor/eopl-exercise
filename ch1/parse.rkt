@@ -1,0 +1,84 @@
+#lang racket
+(require (prefix-in : parser-tools/lex-sre)
+         parser-tools/lex
+         megaparsack
+         megaparsack/text
+         megaparsack/parser-tools/lex
+         data/monad
+         data/applicative)
+
+(define-tokens basic [IDENTIFIER NUMBER TRUE FALSE])
+(define-empty-tokens puct [LPAREN RPAREN COMMA EQ IN SUB IF ZERO LET THEN ELSE])
+
+(define let-lexer
+  (lexer-src-pos
+   [#\( (token-LPAREN)]
+   [#\) (token-RPAREN)]
+   [#\, (token-COMMA)]
+   ["if" (token-IF)]
+   ["let" (token-LET)]
+   ["zero?" (token-ZERO)]
+   ["in" (token-IN)]
+   ["then" (token-THEN)]
+   ["else" (token-ELSE)]
+   [#\= (token-EQ)]
+   [#\- (token-SUB)]
+   [(:+ (:/ #\a #\z)) (token-IDENTIFIER (string->symbol lexeme))]
+   [(:+ (:/ #\0 #\9)) (token-NUMBER (string->number lexeme))]
+   [(:or whitespace blank) (void)]
+   [(eof) eof]))
+
+(define (lex-let str)
+  (define in (open-input-string str))
+  (let loop ([v (let-lexer in)])
+    (cond [(void? (position-token-token v)) (loop (let-lexer in))]
+          [(eof-object? (position-token-token v)) '()]
+          [else (cons v (loop (let-lexer in)))])))
+
+(define number/p (syntax/p (token/p 'NUMBER)))
+(define identifier/p (syntax/p (token/p 'IDENTIFIER)))
+
+(define diff/p
+  (syntax/p
+   (do (token/p 'SUB)
+     (token/p 'LPAREN)
+     [left-expr <- expression/p]
+     (token/p 'COMMA)
+     [right-expr <- expression/p]
+     (token/p 'RPAREN)
+     (pure (list 'SUB left-expr right-expr )))))
+
+(define if/p
+  (syntax/p
+   (do (token/p 'IF)
+     [condition <- expression/p]
+     (token/p 'THEN)
+     [true-expr <-  expression/p]
+     (token/p 'ELSE)
+     [false-expr <- expression/p]
+     (pure (list 'IF condition true-expr false-expr)))))
+
+(define zero/p
+  (syntax/p
+   (do (token/p 'ZERO)
+     (token/p 'LPAREN)
+     [zero-expr <- expression/p]
+     (token/p 'RPAREN)
+     (pure (list 'ZERO zero-expr)))))
+
+(define let/p
+  (syntax/p
+   (do (token/p 'LET)
+     [identifier <- identifier/p]
+     (token/p 'EQ)
+     [expr-bind <- expression/p]
+     (token/p 'IN)
+     [expr-return <- expression/p]
+     (pure (list 'LET identifier expr-bind expr-return)))))
+
+(define expression/p (or/p number/p identifier/p let/p diff/p if/p zero/p))
+(define syntax-tree
+ (parse-result! (parse-tokens
+                 expression/p (lex-let "let a = 1 in let b = -(2, a) in if zero?(b) then 1 else 2" ))))
+
+(println (car syntax-tree))
