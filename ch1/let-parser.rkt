@@ -2,7 +2,6 @@
 (require (prefix-in : parser-tools/lex-sre)
          parser-tools/lex
          megaparsack
-         megaparsack/text
          megaparsack/parser-tools/lex
          data/monad
          data/applicative)
@@ -77,8 +76,22 @@
      (pure (list 'LET identifier expr-bind expr-return)))))
 
 (define expression/p (or/p number/p identifier/p let/p diff/p if/p zero/p))
-(define syntax-tree
- (parse-result! (parse-tokens
-                 expression/p (lex-let "let a = 1 in let b = -(2, a) in if zero?(b) then 1 else 2" ))))
 
-(println (car syntax-tree))
+(define (parse-let-syntax-tree src-text) (parse-result! (parse-tokens expression/p (lex-let src-text))))
+
+(struct number (n))
+(struct boolean (b))
+(struct let-if (cond true false))
+(struct let-in (identifier expression-bind expression))
+
+(struct diff (expression-1 expression-2))
+(struct identifer (symbol))
+(struct symbol (symol))
+
+(define (to-ast tokens)
+  (match (map syntax-e (syntax->list tokens))
+    [(list 'LET identier value expression) (let-in identier value expression)]
+    [(list _ ... ) 2])
+  )
+
+(provide parse-let-syntax-tree to-ast)
