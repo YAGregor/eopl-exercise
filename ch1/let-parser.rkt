@@ -79,19 +79,32 @@
 
 (define (parse-let-syntax-tree src-text) (parse-result! (parse-tokens expression/p (lex-let src-text))))
 
-(struct number (n))
-(struct boolean (b))
+(struct let-number (n))
+(struct let-boolean (b))
+(struct identifer (symbol))
+
 (struct let-if (cond true false))
 (struct let-in (identifier expression-bind expression))
-
 (struct diff (expression-1 expression-2))
-(struct identifer (symbol))
-(struct symbol (symol))
 
 (define (to-ast tokens)
-  (match (map syntax-e (syntax->list tokens))
-    [(list 'LET identier value expression) (let-in identier value expression)]
-    [(list _ ... ) 2])
+  (cond
+    [(number? tokens) (let-number tokens)]
+    [(boolean? tokens) (let-boolean tokens)]
+    [(symbol? tokens) (identifer tokens)]
+    [(syntax? tokens) (to-ast (syntax-e tokens))]
+    [(list? tokens)
+     (let ([first (car tokens)])
+       (cond
+         [(syntax? first) (to-ast (map syntax-e tokens))]
+         [else (match tokens
+                 [(list 'LET id value in) (let-in (to-ast id) (to-ast value) (to-ast in))]
+                 [(list 'SUB a b ) (diff (to-ast a) (to-ast b))]
+                 [(list 'IF exp-cond exp-then exp-else) (let-if (to-ast exp-cond) (to-ast exp-then) (exp-else))]
+                 [_ 'error])]))]
+    [else 'error]
+    )
   )
 
-(provide parse-let-syntax-tree to-ast)
+(provide parse-let-syntax-tree to-ast (struct-out let-number) (struct-out let-boolean)
+ (struct-out identifer) (struct-out let-if) (struct-out let-in) (struct-out diff))
