@@ -79,13 +79,15 @@
 
 (define (parse-let-syntax-tree src-text) (parse-result! (parse-tokens expression/p (lex-let src-text))))
 
-(struct let-number (n))
-(struct let-boolean (b))
-(struct identifer (symbol))
+(struct expression ())
 
-(struct let-if (cond true false))
-(struct let-in (identifier expression-bind expression))
-(struct diff (expression-1 expression-2))
+(struct let-number expression (n) #:transparent)
+(struct let-boolean expression (b) #:transparent)
+(struct identifer expression (symbol) #:transparent)
+
+(struct let-if expression (cond true false))
+(struct let-in expression (identifier expression-bind expression))
+(struct diff expression (expression-1 expression-2))
 
 (define (to-ast tokens)
   (cond
