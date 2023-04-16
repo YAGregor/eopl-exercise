@@ -20,7 +20,7 @@
    [#\, (token-COMMA)]
    ["if" (token-IF)]
    ["let" (token-LET)]
-   [(:or "zero?" "minus" "equal?" "greater?" "less?" "then" "else" #\+  #\- #\* #\/) (token-OPERATION (operation lexeme))]
+   [(:or "zero?" "minus" "equal?" "greater?" "less?" "cons" #\+  #\- #\* #\/) (token-OPERATION (operation lexeme))]
    ["in" (token-IN)]
    ["then" (token-THEN)]
    ["else" (token-ELSE)]
@@ -84,7 +84,7 @@
 
 (define (parse-let-syntax-tree src-text) (parse-result! (parse-tokens expression/p (lex-let src-text))))
 
-(struct expression ())
+(struct expression () #:transparent)
 
 (struct ast-number expression (n) #:transparent)
 (struct ast-boolean expression (b) #:transparent)
@@ -107,14 +107,14 @@
          [else (match tokens
                  [(list 'LET id value in) (ast-in (to-ast id) (to-ast value) (to-ast in))]
                  [(list 'IF exp-cond exp-then exp-else) (ast-if (to-ast exp-cond) (to-ast exp-then) (exp-else))]
-                 [(list (struct operation (name)) ... rest) (ast-operation name (map to-ast rest))]
+                 [(list (struct operation (name)) params) (ast-operation name (map to-ast params))]
                  [_ 'error])]))]
     [else 'error]))
 
 (define (parse source-code)
- (to-ast (parse-let-syntax-tree source-code)))
+  (to-ast (parse-let-syntax-tree source-code)))
 
 (provide
  (struct-out ast-number) (struct-out ast-boolean) (struct-out ast-identifer) (struct-out ast-if) (struct-out ast-if) (struct-out ast-in) (struct-out ast-in) (struct-out ast-operation)
- to-ast parse-let-syntax-tree
+ to-ast parse-let-syntax-tree parse
  )
