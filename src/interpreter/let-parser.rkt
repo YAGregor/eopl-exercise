@@ -92,6 +92,7 @@
 
 (struct ast-if expression (cond true false) #:transparent)
 (struct ast-in expression (identifier expression-bind expression) #:transparent)
+(struct ast-operation expression (name parameters) #:transparent)
 
 (define (to-ast tokens)
   (cond
@@ -106,10 +107,14 @@
          [else (match tokens
                  [(list 'LET id value in) (ast-in (to-ast id) (to-ast value) (to-ast in))]
                  [(list 'IF exp-cond exp-then exp-else) (ast-if (to-ast exp-cond) (to-ast exp-then) (exp-else))]
+                 [(list (struct operation (name)) ... rest) (ast-operation name (map to-ast rest))]
                  [_ 'error])]))]
-    [else 'error]
-    )
-  )
+    [else 'error]))
 
-(define parsing-tree (parse-let-syntax-tree "let a = 1 in -(a, 1, let b = 2 in +(b , 1))"))
-(println parsing-tree)
+(define (parse source-code)
+ (to-ast (parse-let-syntax-tree source-code)))
+
+(provide
+ (struct-out ast-number) (struct-out ast-boolean) (struct-out ast-identifer) (struct-out ast-if) (struct-out ast-if) (struct-out ast-in) (struct-out ast-in) (struct-out ast-operation)
+ to-ast parse-let-syntax-tree
+ )
