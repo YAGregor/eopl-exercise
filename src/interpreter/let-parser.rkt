@@ -4,12 +4,12 @@
          megaparsack
          megaparsack/parser-tools/lex
          data/monad
-         data/applicative)
+         data/applicative
+         "built-in.rkt")
 
 (define-tokens basic [IDENTIFIER NUMBER TRUE FALSE OPERATION])
 (define-empty-tokens puct
-  [LPAREN RPAREN COMMA EQ IN LET THEN ELSE IF
-          ])
+  [LPAREN RPAREN COMMA EQ IN LET THEN ELSE IF EMPTYLIST])
 
 (struct operation (name) #:transparent)
 
@@ -20,10 +20,12 @@
    [#\, (token-COMMA)]
    ["if" (token-IF)]
    ["let" (token-LET)]
-   [(:or "zero?" "minus" "equal?" "greater?" "less?" "cons" #\+  #\- #\* #\/) (token-OPERATION (operation lexeme))]
+   [(:or "zero?" "minus" "equal?" "greater?" "less?" "cons" #\+  #\- #\* #\/ "cons" "list")
+    (token-OPERATION (operation lexeme))]
    ["in" (token-IN)]
    ["then" (token-THEN)]
    ["else" (token-ELSE)]
+   ["emptylist" (token-EMPTYLIST)]
    [#\= (token-EQ)]
    [(:+ (:/ #\a #\z)) (token-IDENTIFIER (string->symbol lexeme))]
    [(:+ (:/ #\0 #\9)) (token-NUMBER (string->number lexeme))]
@@ -39,6 +41,10 @@
 
 (define number/p (syntax/p (token/p 'NUMBER)))
 (define identifier/p (syntax/p (token/p 'IDENTIFIER)))
+(define emptylist/p
+  (syntax/p
+   (do [_ <- (token/p 'EMPTYLIST)]
+     (pure default-empty-list))))
 
 (define if/p
   (syntax/p
@@ -80,7 +86,7 @@
      [parameters <- parameters/p]
      (pure (list operation parameters)))))
 
-(define expression/p (or/p number/p identifier/p let/p operation/p))
+(define expression/p (or/p number/p identifier/p let/p operation/p emptylist/p))
 
 (define (parse-let-syntax-tree src-text) (parse-result! (parse-tokens expression/p (lex-let src-text))))
 
@@ -93,6 +99,7 @@
 (struct ast-if expression (cond true false) #:transparent)
 (struct ast-in expression (identifier expression-bind expression) #:transparent)
 (struct ast-operation expression (name parameters) #:transparent)
+(struct ast-emptylist expression () #:transparent)
 
 (define (to-ast tokens)
   (cond
@@ -100,6 +107,7 @@
     [(boolean? tokens) (ast-boolean tokens)]
     [(symbol? tokens) (ast-identifer tokens)]
     [(syntax? tokens) (to-ast (syntax-e tokens))]
+    [(eopl-empty-list? tokens) (ast-emptylist )]
     [(list? tokens)
      (let ([first (car tokens)])
        (cond
@@ -115,6 +123,6 @@
   (to-ast (parse-let-syntax-tree source-code)))
 
 (provide
- (struct-out ast-number) (struct-out ast-boolean) (struct-out ast-identifer) (struct-out ast-if) (struct-out ast-if) (struct-out ast-in) (struct-out ast-in) (struct-out ast-operation)
- to-ast parse-let-syntax-tree parse
- )
+ (struct-out ast-number) (struct-out ast-boolean) (struct-out ast-identifer) (struct-out ast-if) (struct-out ast-if) (struct-out ast-in) (struct-out ast-in) (struct-out ast-operation) 
+ (struct-out ast-emptylist)
+ to-ast parse-let-syntax-tree parse)

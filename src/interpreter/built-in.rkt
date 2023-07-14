@@ -2,11 +2,13 @@
 
 (struct atom (value))
 
-(struct eopl-emtyp-list ())
+(struct eopl-list ())
 
-(struct eopl-list (value next))
+(struct eopl-empty-list eopl-list () #:transparent)
 
-(define default-empty-list (eopl-emtyp-list ))
+(struct eopl-pare eopl-list (value next) #:transparent)
+
+(define default-empty-list (eopl-empty-list ))
 
 
-(provide default-empty-list)
+(provide default-empty-list (struct-out eopl-pare) (struct-out eopl-empty-list) (struct-out eopl-list))

@@ -50,6 +50,15 @@
   (match params
     [(list (ast-number v1) (ast-number v2)) (ast-number (/ v1 v2))]))
 
+(define (op-cons params)
+  (match params
+    [(list  v1 v2) (eopl-pare v1 v2)]))
+
+(define (op-list params)
+  (match params
+    [(list ) (eopl-empty-list )]
+    [(list head rest ...) (eopl-pare head (op-list rest))]))
+
 (define (value-of-op op-name params)
   (match op-name
     ["zero?" (op-zero? params)]
@@ -60,7 +69,9 @@
     ["+" (op-+ params)]
     ["-" (op-- params)]
     ["*" (op-* params)]
-    ["/" (op-/ params)]))
+    ["/" (op-/ params)]
+    ["cons" (op-cons params)]
+    ["list" (op-list params)]))
 
 
 (define (apply-env the-env var)
@@ -79,6 +90,7 @@
     [(ast-number _) expr]
     [(ast-boolean _) expr]
     [(ast-identifer id) (apply-env env expr)]
+    [(ast-emptylist ) (eopl-empty-list )]
     [(ast-if cond-expr true-expr false-expr)
      (let [(cond-value (value-of cond-expr env))]
        (match cond-value
@@ -90,6 +102,7 @@
     [(ast-operation name parameters) (value-of-op name (map (lambda (v) (value-of v env)) parameters))]))
 
 (define (value-of-source source) (value-of (parse source) empty-env))
-(println (value-of-source "equal?(1, 2)"))
-(println (value-of-source "equal?(1, 1)"))
-(println (value-of-source  "equal?(less?(1, 2), greater?(minus(3), *(minus(1), 4)))"))
+(println (value-of-source "
+let x = 4
+  in list(1, 2, 3)
+"))
