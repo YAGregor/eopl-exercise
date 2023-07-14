@@ -20,7 +20,8 @@
    [#\, (token-COMMA)]
    ["if" (token-IF)]
    ["let" (token-LET)]
-   [(:or "zero?" "minus" "equal?" "greater?" "less?" "cons" #\+  #\- #\* #\/ "cons" "list")
+   [(:or "zero?" "minus" "equal?" "greater?" "less?" #\+  #\- #\* #\/
+    "cons" "list" "car" "cdr")
     (token-OPERATION (operation lexeme))]
    ["in" (token-IN)]
    ["then" (token-THEN)]

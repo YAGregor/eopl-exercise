@@ -59,6 +59,15 @@
     [(list ) (eopl-empty-list )]
     [(list head rest ...) (eopl-pare head (op-list rest))]))
 
+(define (op-car params)
+  (match params
+    [(list (eopl-pare head rest) ) head]))
+
+(define (op-cdr params)
+  (match params
+    [(list (eopl-pare head rest)) rest]))
+
+
 (define (value-of-op op-name params)
   (match op-name
     ["zero?" (op-zero? params)]
@@ -71,7 +80,9 @@
     ["*" (op-* params)]
     ["/" (op-/ params)]
     ["cons" (op-cons params)]
-    ["list" (op-list params)]))
+    ["list" (op-list params)]
+    ["car" (op-car params)]
+    ["cdr" (op-cdr params)]))
 
 
 (define (apply-env the-env var)
@@ -104,5 +115,5 @@
 (define (value-of-source source) (value-of (parse source) empty-env))
 (println (value-of-source "
 let x = 4
-  in list(1, 2, 3)
+  in car(cdr(cdr(list(1, 2, 3, x, -(x, 3)))))
 "))
