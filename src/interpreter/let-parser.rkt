@@ -9,7 +9,7 @@
 
 (define-tokens basic [IDENTIFIER NUMBER TRUE FALSE OPERATION])
 (define-empty-tokens puct
-  [LPAREN RPAREN COMMA EQ IN LET THEN ELSE IF EMPTYLIST])
+  [LPAREN RPAREN COMMA EQ IN LET THEN ELSE IF EMPTYLIST PROC])
 
 (struct operation (name) #:transparent)
 
@@ -21,12 +21,13 @@
    ["if" (token-IF)]
    ["let" (token-LET)]
    [(:or "zero?" "minus" "equal?" "greater?" "less?" #\+  #\- #\* #\/
-    "cons" "list" "car" "cdr")
+         "cons" "list" "car" "cdr")
     (token-OPERATION (operation lexeme))]
    ["in" (token-IN)]
    ["then" (token-THEN)]
    ["else" (token-ELSE)]
    ["emptylist" (token-EMPTYLIST)]
+   ["proc" (token-PROC)]
    [#\= (token-EQ)]
    [(:+ (:/ #\a #\z)) (token-IDENTIFIER (string->symbol lexeme))]
    [(:+ (:/ #\0 #\9)) (token-NUMBER (string->number lexeme))]
@@ -87,7 +88,25 @@
      [parameters <- parameters/p]
      (pure (list operation parameters)))))
 
-(define expression/p (or/p number/p identifier/p let/p operation/p emptylist/p))
+(define proc/p
+  (syntax/p
+   (do (token/p 'PROC)
+     (token/p 'LPAREN)
+     [identifier <- identifier/p]
+     (token/p 'RPAREN)
+     (expression <- expression)
+     (pure 'PROC identifier expression))))
+
+(define proc-call/p
+  (syntax/p
+   (do (token/p 'LPAREN)
+     [proc <- expression/p]
+     [proc-param <- expression/p]
+     (token/p 'RPAREN)
+     (pure 'PROCCALL proc proc-param))))
+
+(define expression/p (or/p number/p identifier/p let/p operation/p emptylist/p
+                           proc/p proc-call/p))
 
 (define (parse-let-syntax-tree src-text) (parse-result! (parse-tokens expression/p (lex-let src-text))))
 
@@ -101,6 +120,8 @@
 (struct ast-in expression (identifier expression-bind expression) #:transparent)
 (struct ast-operation expression (name parameters) #:transparent)
 (struct ast-emptylist expression () #:transparent)
+(struct ast-proc expression (identifier expression) #:transparent)
+(struct ast-proc-call expression (proc param) #:transparent)
 
 (define (to-ast tokens)
   (cond
@@ -116,6 +137,8 @@
          [else (match tokens
                  [(list 'LET id value in) (ast-in (to-ast id) (to-ast value) (to-ast in))]
                  [(list 'IF exp-cond exp-then exp-else) (ast-if (to-ast exp-cond) (to-ast exp-then) (exp-else))]
+                 [(list 'PROC identifer value) (ast-proc identifer (to-ast value))]
+                 [(list 'PROCCALL proc param) (ast-proc-call (to-ast proc) (to-ast param))]
                  [(list (struct operation (name)) params) (ast-operation name (map to-ast params))]
                  [_ 'error])]))]
     [else 'error]))
@@ -124,6 +147,6 @@
   (to-ast (parse-let-syntax-tree source-code)))
 
 (provide
- (struct-out ast-number) (struct-out ast-boolean) (struct-out ast-identifer) (struct-out ast-if) (struct-out ast-if) (struct-out ast-in) (struct-out ast-in) (struct-out ast-operation) 
- (struct-out ast-emptylist)
+ (struct-out ast-number) (struct-out ast-boolean) (struct-out ast-identifer) (struct-out ast-if) (struct-out ast-if) (struct-out ast-in) (struct-out ast-in) (struct-out ast-operation)
+ (struct-out ast-emptylist) (struct-out ast-proc)
  to-ast parse-let-syntax-tree parse)

@@ -102,6 +102,7 @@
     [(ast-boolean _) expr]
     [(ast-identifer id) (apply-env env expr)]
     [(ast-emptylist ) (eopl-empty-list )]
+    [(ast-proc identifier expression) (ast-proc identifier expression)]
     [(ast-if cond-expr true-expr false-expr)
      (let [(cond-value (value-of cond-expr env))]
        (match cond-value
