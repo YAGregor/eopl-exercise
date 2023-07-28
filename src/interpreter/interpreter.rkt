@@ -1,6 +1,6 @@
 #lang racket
 
-(require "let-parser.rkt")
+(require "parser.rkt")
 (require "built-in.rkt")
 
 (struct env ())
@@ -70,19 +70,19 @@
 
 (define (value-of-op op-name params)
   (match op-name
-    ["zero?" (op-zero? params)]
-    ["minus" (op-minus params)]
-    ["equal?" (op-equals? params)]
-    ["greater?" (op-greater? params)]
-    ["less?" (op-less? params)]
-    ["+" (op-+ params)]
-    ["-" (op-- params)]
-    ["*" (op-* params)]
-    ["/" (op-/ params)]
-    ["cons" (op-cons params)]
-    ["list" (op-list params)]
-    ["car" (op-car params)]
-    ["cdr" (op-cdr params)]))
+    ['zero? (op-zero? params)]
+    ['minus (op-minus params)]
+    ['equal? (op-equals? params)]
+    ['greater? (op-greater? params)]
+    ['less? (op-less? params)]
+    ['+ (op-+ params)]
+    ['- (op-- params)]
+    ['* (op-* params)]
+    ['/ (op-/ params)]
+    ['cons (op-cons params)]
+    ['list (op-list params)]
+    ['car (op-car params)]
+    ['cdr (op-cdr params)]))
 
 
 (define (apply-env the-env var)
@@ -94,7 +94,7 @@
        [else (apply-env parent var)])]
     [_ error("type error")]))
 
-(define init-env (extend-env "empty-list" default-empty-list (empty-env )))
+(define init-env  (empty-env ))
 
 (define (value-of expr env)
   (match expr
