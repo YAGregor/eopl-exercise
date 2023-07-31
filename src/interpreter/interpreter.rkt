@@ -20,7 +20,7 @@
 
 (define (op-zero? params)
   (match params
-    [(list (struct ast-number (n))) (= n 0)]
+    [(list (struct ast-number (n))) (ast-boolean (= n 0))]
     [_ (error invalid-params)]))
 
 (define (op-minus params)
@@ -117,8 +117,8 @@
     [(ast-if cond-expr true-expr false-expr)
      (let [(cond-value (value-of cond-expr env))]
        (match cond-value
-         [(ast-boolean #true) (value-of true-expr env)]
-         [(ast-boolean #false) (value-of false-expr env)]))]
+         [(ast-boolean #t) (value-of true-expr env)]
+         [(ast-boolean #f) (value-of false-expr env)]))]
     [(ast-in bind-id bind-value value-return)
      (value-of value-return
                (extend-env bind-id (value-of bind-value env) env))]
@@ -132,6 +132,14 @@
               ast)
             empty-env))
 
-(println (value-of-source "
-let x = proc (y) +(y, 2) in (x 2)
-"))
+(define yc "
+let makemult = proc (maker)
+  proc (x)
+    if zero?(x)
+    then 0
+    else -(((maker maker) -(x,1)), -4)
+  in let times4 = proc (x) ((makemult makemult) x)
+    in (times4 3)
+")
+
+(println (value-of-source yc))

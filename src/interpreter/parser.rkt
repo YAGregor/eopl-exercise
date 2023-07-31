@@ -13,6 +13,7 @@
 
 (define let-lexer
   (lexer-src-pos
+   [(:or whitespace blank) (void)]
    [#\( (token-LPAREN)]
    [#\) (token-RPAREN)]
    [#\, (token-COMMA)]
@@ -27,9 +28,9 @@
    ["emptylist" (token-EMPTYLIST)]
    ["proc" (token-PROC)]
    [#\= (token-EQ)]
-   [(:+ (:/ #\a #\z)) (token-IDENTIFIER (string->symbol lexeme))]
-   [(:+ (:/ #\0 #\9)) (token-NUMBER (string->number lexeme))]
-   [(:or whitespace blank) (void)]
+   [(:: (:* numeric) (:+ alphabetic) (:* numeric) (:* symbolic))
+    (token-IDENTIFIER (string->symbol lexeme))]
+   [(:: (:? (:or #\+ #\-)) (:+ numeric))(token-NUMBER (string->number lexeme))]
    [(eof) eof]))
 
 (define (lex-let str)
@@ -39,70 +40,70 @@
           [(eof-object? (position-token-token v)) '()]
           [else (cons v (loop (let-lexer in)))])))
 
-(define number/p 
-    (do [n <- (token/p 'NUMBER)]
-        (pure (ast-number n))))
+(define number/p
+  (do [n <- (token/p 'NUMBER)]
+    (pure (ast-number n))))
 
-(define identifier/p 
-    (do [id <- (token/p 'IDENTIFIER)]
-        (pure (ast-identifer id))))
+(define identifier/p
+  (do [id <- (token/p 'IDENTIFIER)]
+    (pure (ast-identifer id))))
 
 (define emptylist/p
-   (do [_ <- (token/p 'EMPTYLIST)]
-     (pure (ast-emptylist))))
+  (do [_ <- (token/p 'EMPTYLIST)]
+    (pure (ast-emptylist))))
 
 (define if/p
-   (do (token/p 'IF)
-     [condition <- expression/p]
-     (token/p 'THEN)
-     [true-expr <-  expression/p]
-     (token/p 'ELSE)
-     [false-expr <- expression/p]
-     (pure (ast-if condition true-expr false-expr))))
+  (do (token/p 'IF)
+    [condition <- expression/p]
+    (token/p 'THEN)
+    [true-expr <-  expression/p]
+    (token/p 'ELSE)
+    [false-expr <- expression/p]
+    (pure (ast-if condition true-expr false-expr))))
 
 (define let/p
-   (do (token/p 'LET)
-     [identifier <- identifier/p]
-     (token/p 'EQ)
-     [expr-bind <- expression/p]
-     (token/p 'IN)
-     [expr-return <- expression/p]
-     (pure (ast-in identifier expr-bind expr-return))))
+  (do (token/p 'LET)
+    [identifier <- identifier/p]
+    (token/p 'EQ)
+    [expr-bind <- expression/p]
+    (token/p 'IN)
+    [expr-return <- expression/p]
+    (pure (ast-in identifier expr-bind expr-return))))
 
 (define param-tail/p
-   (do (token/p 'COMMA)
-     [expression <- expression/p]
-     (pure expression)))
+  (do (token/p 'COMMA)
+    [expression <- expression/p]
+    (pure expression)))
 
 (define parameters/p
-   (do (token/p 'LPAREN)
-     [head <- expression/p]
-     [tail <- (many/p param-tail/p)]
-     (token/p 'RPAREN)
-     (pure (list* head tail))))
+  (do (token/p 'LPAREN)
+    [head <- expression/p]
+    [tail <- (many/p param-tail/p)]
+    (token/p 'RPAREN)
+    (pure (list* head tail))))
 
 (define operation/p
-   (do [op <- (token/p 'OPERATION)]
-     [parameters <- parameters/p]
-     (pure (ast-operation op parameters))))
+  (do [op <- (token/p 'OPERATION)]
+    [parameters <- parameters/p]
+    (pure (ast-operation op parameters))))
 
 (define proc/p
-   (do (token/p 'PROC)
-     (token/p 'LPAREN)
-     [identifier <- identifier/p]
-     (token/p 'RPAREN)
-     (expression <- expression/p)
-     (pure (ast-proc identifier expression))))
+  (do (token/p 'PROC)
+    (token/p 'LPAREN)
+    [identifier <- identifier/p]
+    (token/p 'RPAREN)
+    (expression <- expression/p)
+    (pure (ast-proc identifier expression))))
 
 (define proc-call/p
-   (do (token/p 'LPAREN)
-     [proc <- identifier/p]
-     [proc-param <- expression/p]
-     (token/p 'RPAREN)
-     (pure (ast-proc-call proc proc-param))))
+  (do (token/p 'LPAREN)
+    [proc <- expression/p]
+    [proc-param <- expression/p]
+    (token/p 'RPAREN)
+    (pure (ast-proc-call proc proc-param))))
 
 (define expression/p (or/p number/p identifier/p let/p operation/p emptylist/p
-                           proc/p proc-call/p))
+                           proc/p proc-call/p if/p))
 
 (define (parse-let-syntax-tree src-text) (parse-result! (parse-tokens expression/p (lex-let src-text))))
 
@@ -126,4 +127,4 @@
 (provide
  (struct-out ast-number) (struct-out ast-boolean) (struct-out ast-identifer) (struct-out ast-if) (struct-out ast-if) (struct-out ast-in) (struct-out ast-in) (struct-out ast-operation)
  (struct-out ast-emptylist) (struct-out ast-proc) (struct-out ast-proc-call)
-  parse-let-syntax-tree parse)
+ parse-let-syntax-tree parse)
