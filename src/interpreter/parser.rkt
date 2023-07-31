@@ -49,7 +49,7 @@
 
 (define emptylist/p
    (do [_ <- (token/p 'EMPTYLIST)]
-     (pure default-empty-list)))
+     (pure (ast-emptylist))))
 
 (define if/p
    (do (token/p 'IF)
@@ -91,12 +91,12 @@
      (token/p 'LPAREN)
      [identifier <- identifier/p]
      (token/p 'RPAREN)
-     (expression <- expression)
+     (expression <- expression/p)
      (pure (ast-proc identifier expression))))
 
 (define proc-call/p
    (do (token/p 'LPAREN)
-     [proc <- expression/p]
+     [proc <- identifier/p]
      [proc-param <- expression/p]
      (token/p 'RPAREN)
      (pure (ast-proc-call proc proc-param))))
@@ -116,8 +116,8 @@
 (struct ast-in expression (identifier expression-bind expression) #:transparent)
 (struct ast-operation expression (name parameters) #:transparent)
 (struct ast-emptylist expression () #:transparent)
-(struct ast-proc expression (identifier expression) #:transparent)
-(struct ast-proc-call expression (proc param) #:transparent)
+(struct ast-proc expression (identifier-list expression) #:transparent)
+(struct ast-proc-call expression (proc param-list) #:transparent)
 
 
 (define (parse source-code)
@@ -125,5 +125,5 @@
 
 (provide
  (struct-out ast-number) (struct-out ast-boolean) (struct-out ast-identifer) (struct-out ast-if) (struct-out ast-if) (struct-out ast-in) (struct-out ast-in) (struct-out ast-operation)
- (struct-out ast-emptylist) (struct-out ast-proc)
+ (struct-out ast-emptylist) (struct-out ast-proc) (struct-out ast-proc-call)
   parse-let-syntax-tree parse)

@@ -7,6 +7,15 @@
 (struct empty-env env () #:transparent)
 (struct extend-env env (id value parent) #:transparent)
 
+(define (apply-env the-env var)
+  (match the-env
+    [(empty-env) (error "apply empty env")]
+    [(extend-env id value parent)
+     (cond
+       [(eq? (ast-identifer-symbol var) (ast-identifer-symbol id)) value]
+       [else (apply-env parent var)])]
+    [_ error("type error")]))
+
 (define invalid-params "invalid params")
 
 (define (op-zero? params)
@@ -85,16 +94,19 @@
     ['cdr (op-cdr params)]))
 
 
-(define (apply-env the-env var)
-  (match the-env
-    [(empty-env) (error "apply empty env")]
-    [(extend-env id value parent)
-     (cond
-       [(eq? (ast-identifer-symbol var) (ast-identifer-symbol id)) value]
-       [else (apply-env parent var)])]
-    [_ error("type error")]))
+(define init-env  (empty-env))
 
-(define init-env  (empty-env ))
+(struct procedure (param expression env) #:transparent)
+
+(define (value-of-proc param-name-list body env)
+  (procedure param-name-list body env))
+
+(define (apply-proc proc param-value env)
+  (match proc
+    [(procedure param expression env) (value-of expression (extend-env param param-value env))]))
+
+(define (value-of-proc-call procedure param env)
+ (apply-proc procedure param env))
 
 (define (value-of expr env)
   (match expr
@@ -102,7 +114,6 @@
     [(ast-boolean _) expr]
     [(ast-identifer id) (apply-env env expr)]
     [(ast-emptylist ) (eopl-empty-list )]
-    [(ast-proc identifier expression) (ast-proc identifier expression)]
     [(ast-if cond-expr true-expr false-expr)
      (let [(cond-value (value-of cond-expr env))]
        (match cond-value
@@ -111,10 +122,16 @@
     [(ast-in bind-id bind-value value-return)
      (value-of value-return
                (extend-env bind-id (value-of bind-value env) env))]
-    [(ast-operation name parameters) (value-of-op name (map (lambda (v) (value-of v env)) parameters))]))
+    [(ast-operation name parameters) (value-of-op name (map (lambda (v) (value-of v env)) parameters))]
+    [(ast-proc identifier expression) (value-of-proc identifier expression env)]
+    [(ast-proc-call expression param) (value-of-proc-call (value-of expression env) (value-of param env) env)]))
 
-(define (value-of-source source) (value-of (parse source) empty-env))
+(define (value-of-source source)
+  (value-of (let ([ast (parse source)])
+              (println ast)
+              ast)
+            empty-env))
+
 (println (value-of-source "
-let x = 4
-  in car(cdr(cdr(list(1, 2, 3, x, -(x, 3)))))
+let x = proc (y) +(y, 2) in (x 2)
 "))
