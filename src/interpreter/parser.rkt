@@ -77,8 +77,11 @@
     (token/p 'LPAREN)
     [identifier <- identifier/p]
     (token/p 'RPAREN)
+    (token/p 'EQ)
+    [expression <- expression/p]
+    [token/p 'IN]
     [body <- expression/p]
-    (pure (ast-let-rec name identifier body))))
+    (pure (ast-let-rec name identifier expression body))))
 
 (define param-tail/p
   (do (token/p 'COMMA)
@@ -129,7 +132,7 @@
 (struct ast-emptylist expression () #:transparent)
 (struct ast-proc expression (identifier-list expression) #:transparent)
 (struct ast-proc-call expression (proc param) #:transparent)
-(struct ast-let-rec expression (name param-identifer body) #:transparent)
+(struct ast-let-rec expression (name param-identifer expression body) #:transparent)
 
 (define (parse source-code)
   (parse-let-syntax-tree source-code))
