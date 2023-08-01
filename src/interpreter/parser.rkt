@@ -118,7 +118,12 @@
 (define expression/p (or/p number/p identifier/p let/p let-rec/p operation/p emptylist/p
                            proc/p proc-call/p if/p))
 
-(define (parse-let-syntax-tree src-text) (parse-result! (parse-tokens expression/p (lex-let src-text))))
+(define program/p
+  (do [p <- expression/p]
+    [_ <- eof/p]
+    (pure p)))
+
+(define (parse-let-syntax-tree src-text) (parse-result! (parse-tokens program/p (lex-let src-text))))
 
 (struct expression () #:transparent)
 
