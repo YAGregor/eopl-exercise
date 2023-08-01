@@ -6,6 +6,7 @@
 (struct env ())
 (struct empty-env env () #:transparent)
 (struct extend-env env (id value parent) #:transparent)
+(struct rec-extend-env env (parent) #:transparent)
 
 (define (apply-env the-env var)
   (match the-env
@@ -20,44 +21,44 @@
 
 (define (op-zero? params)
   (match params
-    [(list (struct ast-number (n))) (ast-boolean (= n 0))]
+    [(list (? number? n)) (= n 0)]
     [_ (error invalid-params)]))
 
 (define (op-minus params)
   (match params
-    [(list (ast-number n)) (ast-number (- n))]
+    [(list (? number? n)) (- n)]
     [_ (error invalid-params)]))
 
 (define (op-equals? params)
   (match params
-    [(list v1 v2) (ast-boolean (equal? v1 v2))]
+    [(list v1 v2) (equal? v1 v2)]
     [_ (error invalid-params)]))
 
 (define (op-greater? params)
   (match params
-    [(list (ast-number v1) (ast-number v2)) (ast-boolean (> v1 v2))]
+    [(list (? number? v1) (? number? v2)) (> v1 v2)]
     [_ (error invalid-params)]))
 
 (define (op-less? params)
   (match params
-    [(list (ast-number v1) (ast-number v2)) (ast-boolean (< v1 v2))]))
+    [(list (? number? v1) (? number? v2)) (< v1 v2)]))
 
 (define (op-+ params)
   (match params
-    [(list (ast-number v1) (ast-number v2)) (ast-number (+ v1 v2))]))
+    [(list (? number? v1) (? number? v2)) (+ v1 v2)]))
 
 (define (op-- params)
   (match params
-    [(list (ast-number v1) (ast-number v2)) (ast-number (- v1 v2))]
+    [(list (? number? v1) (? number? v2)) (- v1 v2)]
     [_ (error invalid-params)]))
 
 (define (op-* params)
   (match params
-    [(list (ast-number v1) (ast-number v2)) (ast-number (* v1 v2))]))
+    [(list (? number? v1) (? number? v2)) (* v1 v2)]))
 
 (define (op-/ params)
   (match params
-    [(list (ast-number v1) (ast-number v2)) (ast-number (/ v1 v2))]))
+    [(list (? number? v1) (? number? v2)) (/ v1 v2)]))
 
 (define (op-cons params)
   (match params
@@ -97,28 +98,29 @@
 (define init-env  (empty-env))
 
 (struct procedure (param expression env) #:transparent)
+(struct procedure-rec (proc-name proc-identifier expression env) #:transparent)
 
 (define (value-of-proc param-name-list body env)
   (procedure param-name-list body env))
 
 (define (apply-proc proc param-value env)
   (match proc
-    [(procedure param expression env) (value-of expression (extend-env param param-value env))]))
+    [(procedure param expression procedure-env) (value-of expression (extend-env param param-value procedure-env))]))
 
 (define (value-of-proc-call procedure param env)
  (apply-proc procedure param env))
 
 (define (value-of expr env)
   (match expr
-    [(ast-number _) expr]
-    [(ast-boolean _) expr]
+    [(ast-number v) v]
+    [(ast-boolean v) v]
     [(ast-identifer id) (apply-env env expr)]
     [(ast-emptylist ) (eopl-empty-list )]
     [(ast-if cond-expr true-expr false-expr)
      (let [(cond-value (value-of cond-expr env))]
        (match cond-value
-         [(ast-boolean #t) (value-of true-expr env)]
-         [(ast-boolean #f) (value-of false-expr env)]))]
+         [#t (value-of true-expr env)]
+         [#f (value-of false-expr env)]))]
     [(ast-in bind-id bind-value value-return)
      (value-of value-return
                (extend-env bind-id (value-of bind-value env) env))]
@@ -132,14 +134,4 @@
               ast)
             empty-env))
 
-(define yc "
-let makemult = proc (maker)
-  proc (x)
-    if zero?(x)
-    then 0
-    else -(((maker maker) -(x,1)), -4)
-  in let times4 = proc (x) ((makemult makemult) x)
-    in (times4 3)
-")
-
-(println (value-of-source yc))
+(println (value-of-source "zero?(1)"))

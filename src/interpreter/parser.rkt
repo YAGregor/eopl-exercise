@@ -9,7 +9,7 @@
 
 (define-tokens basic [IDENTIFIER NUMBER TRUE FALSE OPERATION])
 (define-empty-tokens puct
-  [LPAREN RPAREN COMMA EQ IN LET THEN ELSE IF EMPTYLIST PROC])
+  [LPAREN RPAREN COMMA EQ IN LET THEN ELSE IF EMPTYLIST PROC LET-REC])
 
 (define let-lexer
   (lexer-src-pos
@@ -19,6 +19,7 @@
    [#\, (token-COMMA)]
    ["if" (token-IF)]
    ["let" (token-LET)]
+   ["letrec" (token-LET-REC)]
    [(:or "zero?" "minus" "equal?" "greater?" "less?" #\+  #\- #\* #\/
          "cons" "list" "car" "cdr")
     (token-OPERATION (string->symbol lexeme))]
@@ -70,6 +71,15 @@
     [expr-return <- expression/p]
     (pure (ast-in identifier expr-bind expr-return))))
 
+(define let-rec/p
+  (do (token/p 'LET-REC)
+    [name <- identifier/p]
+    (token/p 'LPAREN)
+    [identifier <- identifier/p]
+    (token/p 'RPAREN)
+    [body <- expression/p]
+    (pure (ast-let-rec name identifier body))))
+
 (define param-tail/p
   (do (token/p 'COMMA)
     [expression <- expression/p]
@@ -102,7 +112,7 @@
     (token/p 'RPAREN)
     (pure (ast-proc-call proc proc-param))))
 
-(define expression/p (or/p number/p identifier/p let/p operation/p emptylist/p
+(define expression/p (or/p number/p identifier/p let/p let-rec/p operation/p emptylist/p
                            proc/p proc-call/p if/p))
 
 (define (parse-let-syntax-tree src-text) (parse-result! (parse-tokens expression/p (lex-let src-text))))
@@ -118,13 +128,13 @@
 (struct ast-operation expression (name parameters) #:transparent)
 (struct ast-emptylist expression () #:transparent)
 (struct ast-proc expression (identifier-list expression) #:transparent)
-(struct ast-proc-call expression (proc param-list) #:transparent)
-
+(struct ast-proc-call expression (proc param) #:transparent)
+(struct ast-let-rec expression (name param-identifer body) #:transparent)
 
 (define (parse source-code)
   (parse-let-syntax-tree source-code))
 
 (provide
  (struct-out ast-number) (struct-out ast-boolean) (struct-out ast-identifer) (struct-out ast-if) (struct-out ast-if) (struct-out ast-in) (struct-out ast-in) (struct-out ast-operation)
- (struct-out ast-emptylist) (struct-out ast-proc) (struct-out ast-proc-call)
+ (struct-out ast-emptylist) (struct-out ast-proc) (struct-out ast-proc-call) (struct-out ast-let-rec)
  parse-let-syntax-tree parse)
