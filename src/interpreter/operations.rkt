@@ -62,4 +62,20 @@
   (match params
     [(list (eopl-pare head rest)) rest]))
 
-(provide op-zero? op-minus op-equals? op-greater? op-less? op-+ op-- op-* op-/ op-cons op-list op-car op-cdr)
+(define (value-of-op op-name params)
+  (match op-name
+    ['zero? (op-zero? params)]
+    ['minus (op-minus params)]
+    ['equal? (op-equals? params)]
+    ['greater? (op-greater? params)]
+    ['less? (op-less? params)]
+    ['+ (op-+ params)]
+    ['- (op-- params)]
+    ['* (op-* params)]
+    ['/ (op-/ params)]
+    ['cons (op-cons params)]
+    ['list (op-list params)]
+    ['car (op-car params)]
+    ['cdr (op-cdr params)]))
+
+(provide op-zero? op-minus op-equals? op-greater? op-less? op-+ op-- op-* op-/ op-cons op-list op-car op-cdr value-of-op)

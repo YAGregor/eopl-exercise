@@ -7,7 +7,7 @@
          data/applicative
          "built-in.rkt")
 
-(define-tokens basic [IDENTIFIER NUMBER TRUE FALSE OPERATION])
+(define-tokens basic [IDENTIFIER NUMBER TRUE FALSE OPERATION BEGIN END SEMICOLON])
 (define-empty-tokens puct
   [LPAREN RPAREN COMMA EQ IN LET THEN ELSE IF EMPTYLIST PROC LET-REC])
 
@@ -20,6 +20,9 @@
    ["if" (token-IF)]
    ["let" (token-LET)]
    ["letrec" (token-LET-REC)]
+   ["begin" (token-BEGIN)]
+   ["end" (token-END)]
+   [#\; (token-SEMICOLON)]
    [(:or "zero?" "minus" "equal?" "greater?" "less?" #\+  #\- #\* #\/
          "cons" "list" "car" "cdr")
     (token-OPERATION (string->symbol lexeme))]
@@ -71,17 +74,21 @@
     [expr-return <- expression/p]
     (pure (ast-in identifier expr-bind expr-return))))
 
-(define let-rec/p
-  (do (token/p 'LET-REC)
-    [name <- identifier/p]
+(define let-rec-name-param-exp/p
+  (do [name <- identifier/p]
     (token/p 'LPAREN)
     [identifier <- identifier/p]
     (token/p 'RPAREN)
     (token/p 'EQ)
     [expression <- expression/p]
+    (pure (name-param-exp name identifier expression))))
+
+(define let-rec/p
+  (do (token/p 'LET-REC)
+    [name-param-exp-list <- let-rec-name-param-exp/p]
     [token/p 'IN]
     [body <- expression/p]
-    (pure (ast-let-rec name identifier expression body))))
+    (pure (ast-let-rec name-param-exp-list body))))
 
 (define param-tail/p
   (do (token/p 'COMMA)
@@ -115,8 +122,20 @@
     (token/p 'RPAREN)
     (pure (ast-proc-call proc proc-param))))
 
+(define begin-sentence/p
+  (do [exp <- expression/p]
+    (token/p 'SIMICOLON)
+    (pure exp)))
+
+(define begin-exp/p
+  (do (token/p 'BEGIN)
+    [exp-list <- (many*/p begin-sentence/p)]
+    [last-exp <- expression/p]
+    (token/p 'END)
+    (pure (ast-begin (append exp-list (list last-exp))))))
+
 (define expression/p (or/p number/p identifier/p let/p let-rec/p operation/p emptylist/p
-                           proc/p proc-call/p if/p))
+                           proc/p proc-call/p if/p begin-exp/p))
 
 (define program/p
   (do [p <- expression/p]
@@ -137,12 +156,14 @@
 (struct ast-emptylist expression () #:transparent)
 (struct ast-proc expression (identifier-list expression) #:transparent)
 (struct ast-proc-call expression (proc param) #:transparent)
-(struct ast-let-rec expression (name param-identifer expression body) #:transparent)
+(struct name-param-exp (name param exp))
+(struct ast-let-rec expression (name-param-exp-list body) #:transparent)
+(struct ast-begin expression (exp-list) #:transparent)
 
 (define (parse source-code)
   (parse-let-syntax-tree source-code))
 
 (provide
  (struct-out ast-number) (struct-out ast-boolean) (struct-out ast-identifer) (struct-out ast-if) (struct-out ast-if) (struct-out ast-in) (struct-out ast-in) (struct-out ast-operation)
- (struct-out ast-emptylist) (struct-out ast-proc) (struct-out ast-proc-call) (struct-out ast-let-rec)
+ (struct-out ast-emptylist) (struct-out ast-proc) (struct-out ast-proc-call) (struct-out ast-let-rec) (struct-out ast-begin) (struct-out name-param-exp)
  parse-let-syntax-tree parse)

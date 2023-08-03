@@ -1,8 +1,6 @@
 #lang racket
 
-(require "parser.rkt")
-(require "built-in.rkt")
-(require "operations.rkt")
+(require "parser.rkt" "built-in.rkt" "operations.rkt")
 
 (struct env ())
 (struct empty-env env () #:transparent)
@@ -20,24 +18,6 @@
        [(eq? var proc-name) (procedure param-identifier expression the-env)]
        [else (apply-env parent var)])]))
 
-
-(define (value-of-op op-name params)
-  (match op-name
-    ['zero? (op-zero? params)]
-    ['minus (op-minus params)]
-    ['equal? (op-equals? params)]
-    ['greater? (op-greater? params)]
-    ['less? (op-less? params)]
-    ['+ (op-+ params)]
-    ['- (op-- params)]
-    ['* (op-* params)]
-    ['/ (op-/ params)]
-    ['cons (op-cons params)]
-    ['list (op-list params)]
-    ['car (op-car params)]
-    ['cdr (op-cdr params)]))
-
-
 (define init-env (empty-env))
 
 (struct procedure (param expression env) #:transparent)
@@ -53,13 +33,15 @@
 (define (value-of-proc-call procedure param env)
   (apply-proc procedure param env))
 
+(define (value-of-begin-exp exp-list env)
+  ())
 
 (define (value-of expr env)
   (match expr
     [(ast-number v) v]
     [(ast-boolean v) v]
-    [(ast-identifer id) (apply-env env id)]
     [(ast-emptylist ) (eopl-empty-list )]
+    [(ast-identifer id) (apply-env env id)]
     [(ast-if cond-expr true-expr false-expr)
      (let [(cond-value (value-of cond-expr env))]
        (match cond-value
@@ -71,6 +53,7 @@
     [(ast-operation name parameters) (value-of-op name (map (lambda (v) (value-of v env)) parameters))]
     [(ast-proc (ast-identifer identifier) expression) (value-of-proc identifier expression env)]
     [(ast-proc-call expression param) (value-of-proc-call (value-of expression env) (value-of param env) env)]
+    [(ast-begin exp-list) ()]
     [(ast-let-rec (ast-identifer name) (ast-identifer param-id) expression body)
      (value-of body (extend-env-rec name param-id expression env))]))
 
@@ -80,4 +63,4 @@
               ast)
             init-env))
 
-(println (value-of-source "letrec f(x) = if equal?(x, 1) then 1 else +(x, (f -(x, 1))) in (f 3)"))
+(println (value-of-source "emptylist"))

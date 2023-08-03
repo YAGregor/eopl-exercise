@@ -1,7 +1,5 @@
 #lang racket
 
-(struct atom (value))
-
 (struct eopl-list ())
 
 (struct eopl-empty-list eopl-list () #:transparent)
