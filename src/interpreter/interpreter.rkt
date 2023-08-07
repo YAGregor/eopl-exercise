@@ -1,6 +1,6 @@
 #lang racket
 
-(require "parser.rkt" "built-in.rkt" "operations.rkt")
+(require "parser.rkt" "built-in.rkt" "operations.rkt" "state.rkt")
 
 (struct env ())
 (struct empty-env env () #:transparent)
@@ -22,7 +22,7 @@
                (match x
                  [(name-param-exp n p e) (eq? n var)]))
              name-param-exp-list)])
-       (cond [(null? matched-n-p-e) (apply-env parent var)]
+       (cond [(false? matched-n-p-e) (apply-env parent var)]
              [else
               (match matched-n-p-e
                 [(name-param-exp n p e) (procedure p e the-env)])]))]))
@@ -76,13 +76,28 @@
     [(ast-let-rec name-param-exp-list body) (value-of-let-rec name-param-exp-list body env)]))
 
 (define (value-of-source source)
+  (begin
+  (initialize-the-store!)
   (value-of (let ([ast (parse source)])
               (println (list "ast!!-->" ast))
               ast)
-            init-env))
+            init-env)))
 
 (println (value-of-source "
-letrec f(x) = if zero?(x) then 1 else +(2, (g -(x, 1)))
-       g(x) = if zero?(x) then 1 else +(2, (f -(x, 1)))
-        in begin 1; 2; (f 5) end
+let x = newref(0)
+in letrec even(dummy)
+          = if zero?(deref(x))
+            then 1
+            else begin
+              setref(x, -(deref(x),1));
+              (odd 888)
+            end
+          odd(dummy)
+          = if zero?(deref(x))
+            then 0
+            else begin
+              setref(x, -(deref(x),1));
+              (even 888)
+            end
+in begin setref(x,12); (odd 888) end
 "))

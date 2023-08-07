@@ -1,6 +1,6 @@
 #lang racket
 
-(require "built-in.rkt")
+(require "built-in.rkt" "state.rkt")
 
 (define invalid-params "invalid params")
 
@@ -62,6 +62,19 @@
   (match params
     [(list (eopl-pare head rest)) rest]))
 
+(define (op-newref params)
+  (match params
+    [(list value)
+     (newref value)]))
+
+(define (op-deref params)
+  (match params
+    [(list ref) (deref ref)]))
+
+(define (op-setref params)
+  (match params
+    [(list ref value) (setref! ref value)]))
+
 (define (value-of-op op-name params)
   (match op-name
     ['zero? (op-zero? params)]
@@ -76,6 +89,9 @@
     ['cons (op-cons params)]
     ['list (op-list params)]
     ['car (op-car params)]
-    ['cdr (op-cdr params)]))
+    ['cdr (op-cdr params)]
+    ['newref (op-newref params)]
+    ['deref (op-deref params)]
+    ['setref (op-setref params)]))
 
 (provide op-zero? op-minus op-equals? op-greater? op-less? op-+ op-- op-* op-/ op-cons op-list op-car op-cdr value-of-op)

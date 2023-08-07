@@ -29,12 +29,12 @@
    ["emptylist" (token-EMPTYLIST)]
    ["proc" (token-PROC)]
    [#\= (token-EQ)]
+   [(:or "zero?" "minus" "equal?" "greater?" "less?" #\+  #\- #\* #\/
+         "cons" "list" "car" "cdr" "newref" "deref" "setref")
+    (token-OPERATION (string->symbol lexeme))]
    [(:: (:* numeric) (:+ alphabetic) (:* numeric) (:* symbolic))
     (token-IDENTIFIER (string->symbol lexeme))]
    [(:: (:? (:or #\+ #\-)) (:+ numeric))(token-NUMBER (string->number lexeme))]
-   [(:or "zero?" "minus" "equal?" "greater?" "less?" #\+  #\- #\* #\/
-         "cons" "list" "car" "cdr")
-    (token-OPERATION (string->symbol lexeme))]
    [(eof) eof]))
 
 (define (lex-let str)
