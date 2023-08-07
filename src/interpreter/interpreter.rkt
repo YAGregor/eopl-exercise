@@ -5,7 +5,9 @@
 (struct env ())
 (struct empty-env env () #:transparent)
 (struct extend-env env (id value parent) #:transparent)
-(struct extend-env-rec env (proc-name param-identifier body parent) #:transparent)
+(struct extend-env-rec env (name-param-exp-list parent) #:transparent)
+
+(struct name-param-exp (name param expression))
 
 (define (apply-env the-env var)
   (match the-env
@@ -13,10 +15,17 @@
      (cond
        [(eq? var id) value]
        [else (apply-env parent var)])]
-    [(extend-env-rec proc-name param-identifier expression parent)
-     (cond
-       [(eq? var proc-name) (procedure param-identifier expression the-env)]
-       [else (apply-env parent var)])]))
+    [(extend-env-rec name-param-exp-list parent)
+     (let ([matched-n-p-e
+            (findf
+             (lambda (x)
+               (match x
+                 [(name-param-exp n p e) (eq? n var)]))
+             name-param-exp-list)])
+       (cond [(null? matched-n-p-e) (apply-env parent var)]
+             [else
+              (match matched-n-p-e
+                [(name-param-exp n p e) (procedure p e the-env)])]))]))
 
 (define init-env (empty-env))
 
@@ -25,16 +34,26 @@
 (define (value-of-proc param body env)
   (procedure param body env))
 
-(define (apply-proc proc param-value env)
-  (match proc
-    [(procedure param expression procedure-env)
-     (value-of expression (extend-env param param-value procedure-env))]))
-
-(define (value-of-proc-call procedure param env)
-  (apply-proc procedure param env))
 
 (define (value-of-begin-exp exp-list env)
-  ())
+  (match exp-list
+    [(list last-exp) (value-of last-exp env)]
+    [(list exp rest ...) (begin (value-of exp env) (value-of-begin-exp rest env))]))
+
+(define (value-of-let-rec name-param-exp-list body env)
+  (value-of body (extend-env-rec
+                  (map
+                   (lambda (x)
+                     (match x [(ast-name-param-exp (ast-identifer n) (ast-identifer p) e) (name-param-exp n p e)]))
+                   name-param-exp-list)
+                  env)))
+
+(define (value-of-proc-call proc param env)
+  (let ([proc-value (value-of proc env)]
+        [param-value (value-of param env)])
+    (match proc-value
+      [(procedure param exp p-env)
+       (value-of exp (extend-env param param-value p-env))])))
 
 (define (value-of expr env)
   (match expr
@@ -52,10 +71,9 @@
                (extend-env id (value-of bind-value env) env))]
     [(ast-operation name parameters) (value-of-op name (map (lambda (v) (value-of v env)) parameters))]
     [(ast-proc (ast-identifer identifier) expression) (value-of-proc identifier expression env)]
-    [(ast-proc-call expression param) (value-of-proc-call (value-of expression env) (value-of param env) env)]
-    [(ast-begin exp-list) ()]
-    [(ast-let-rec (ast-identifer name) (ast-identifer param-id) expression body)
-     (value-of body (extend-env-rec name param-id expression env))]))
+    [(ast-proc-call expression param) (value-of-proc-call expression param env)]
+    [(ast-begin exp-list) (value-of-begin-exp exp-list env)]
+    [(ast-let-rec name-param-exp-list body) (value-of-let-rec name-param-exp-list body env)]))
 
 (define (value-of-source source)
   (value-of (let ([ast (parse source)])
@@ -63,4 +81,8 @@
               ast)
             init-env))
 
-(println (value-of-source "emptylist"))
+(println (value-of-source "
+letrec f(x) = if zero?(x) then 1 else +(2, (g -(x, 1)))
+       g(x) = if zero?(x) then 1 else +(2, (f -(x, 1)))
+        in begin 1; 2; (f 5) end
+"))

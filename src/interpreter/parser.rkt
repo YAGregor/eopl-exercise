@@ -7,9 +7,9 @@
          data/applicative
          "built-in.rkt")
 
-(define-tokens basic [IDENTIFIER NUMBER TRUE FALSE OPERATION BEGIN END SEMICOLON])
+(define-tokens basic [IDENTIFIER NUMBER TRUE FALSE OPERATION])
 (define-empty-tokens puct
-  [LPAREN RPAREN COMMA EQ IN LET THEN ELSE IF EMPTYLIST PROC LET-REC])
+  [LPAREN RPAREN COMMA EQ IN LET THEN ELSE IF EMPTYLIST PROC LET-REC BEGIN END SEMICOLON])
 
 (define let-lexer
   (lexer-src-pos
@@ -23,9 +23,6 @@
    ["begin" (token-BEGIN)]
    ["end" (token-END)]
    [#\; (token-SEMICOLON)]
-   [(:or "zero?" "minus" "equal?" "greater?" "less?" #\+  #\- #\* #\/
-         "cons" "list" "car" "cdr")
-    (token-OPERATION (string->symbol lexeme))]
    ["in" (token-IN)]
    ["then" (token-THEN)]
    ["else" (token-ELSE)]
@@ -35,6 +32,9 @@
    [(:: (:* numeric) (:+ alphabetic) (:* numeric) (:* symbolic))
     (token-IDENTIFIER (string->symbol lexeme))]
    [(:: (:? (:or #\+ #\-)) (:+ numeric))(token-NUMBER (string->number lexeme))]
+   [(:or "zero?" "minus" "equal?" "greater?" "less?" #\+  #\- #\* #\/
+         "cons" "list" "car" "cdr")
+    (token-OPERATION (string->symbol lexeme))]
    [(eof) eof]))
 
 (define (lex-let str)
@@ -81,11 +81,11 @@
     (token/p 'RPAREN)
     (token/p 'EQ)
     [expression <- expression/p]
-    (pure (name-param-exp name identifier expression))))
+    (pure (ast-name-param-exp name identifier expression))))
 
 (define let-rec/p
   (do (token/p 'LET-REC)
-    [name-param-exp-list <- let-rec-name-param-exp/p]
+    [name-param-exp-list <- (many/p let-rec-name-param-exp/p)]
     [token/p 'IN]
     [body <- expression/p]
     (pure (ast-let-rec name-param-exp-list body))))
@@ -123,16 +123,16 @@
     (pure (ast-proc-call proc proc-param))))
 
 (define begin-sentence/p
-  (do [exp <- expression/p]
-    (token/p 'SIMICOLON)
+  (do (token/p 'SEMICOLON)
+    [exp <- expression/p]
     (pure exp)))
 
 (define begin-exp/p
   (do (token/p 'BEGIN)
-    [exp-list <- (many*/p begin-sentence/p)]
-    [last-exp <- expression/p]
+    [first-exp <- expression/p]
+    [tail-exp <- (many/p begin-sentence/p)]
     (token/p 'END)
-    (pure (ast-begin (append exp-list (list last-exp))))))
+    (pure (ast-begin (cons first-exp tail-exp)))))
 
 (define expression/p (or/p number/p identifier/p let/p let-rec/p operation/p emptylist/p
                            proc/p proc-call/p if/p begin-exp/p))
@@ -156,7 +156,7 @@
 (struct ast-emptylist expression () #:transparent)
 (struct ast-proc expression (identifier-list expression) #:transparent)
 (struct ast-proc-call expression (proc param) #:transparent)
-(struct name-param-exp (name param exp))
+(struct ast-name-param-exp (name param exp) #:transparent)
 (struct ast-let-rec expression (name-param-exp-list body) #:transparent)
 (struct ast-begin expression (exp-list) #:transparent)
 
@@ -165,5 +165,5 @@
 
 (provide
  (struct-out ast-number) (struct-out ast-boolean) (struct-out ast-identifer) (struct-out ast-if) (struct-out ast-if) (struct-out ast-in) (struct-out ast-in) (struct-out ast-operation)
- (struct-out ast-emptylist) (struct-out ast-proc) (struct-out ast-proc-call) (struct-out ast-let-rec) (struct-out ast-begin) (struct-out name-param-exp)
+ (struct-out ast-emptylist) (struct-out ast-proc) (struct-out ast-proc-call) (struct-out ast-let-rec) (struct-out ast-begin) (struct-out ast-name-param-exp)
  parse-let-syntax-tree parse)

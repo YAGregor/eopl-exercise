@@ -51,7 +51,7 @@
 
 (define (op-list params)
   (match params
-    [(list ) (eopl-empty-list )]
+    [null (eopl-empty-list )]
     [(list head rest ...) (eopl-pare head (op-list rest))]))
 
 (define (op-car params)
