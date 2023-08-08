@@ -76,7 +76,10 @@
     [(ast-number v) v]
     [(ast-boolean v) v]
     [(ast-emptylist ) (eopl-empty-list )]
-    [(ast-identifer id) (deref (apply-env env id))]
+    [(ast-identifer id)
+     (let ([retrived (apply-env env id)])
+       (cond [(ref? retrived) (deref retrived)]
+             [else retrived]))]
     [(ast-if cond-expr true-expr false-expr)
      (let [(cond-value (value-of cond-expr env))]
        (match cond-value
@@ -84,7 +87,11 @@
          [#f (value-of false-expr env)]))]
     [(ast-in (ast-identifer id) bind-value value-return)
      (value-of value-return
-               (extend-env id (newref (value-of bind-value env)) env))]
+               (extend-env id (value-of bind-value env) env))]
+    [(ast-let-mutable (ast-identifer id) bind-exp in-exp)
+     (value-of in-exp
+               (extend-env id
+                           (newref (value-of bind-exp env)) env))]
     [(ast-operation name parameters) (value-of-op name (map (lambda (v) (value-of v env)) parameters))]
     [(ast-proc (ast-identifer identifier) expression) (value-of-proc identifier expression env)]
     [(ast-proc-call expression param) (value-of-proc-call expression param env)]
@@ -101,7 +108,5 @@
               init-env)))
 
 (println (value-of-source "
-letrec f(x) = if zero?(x) then 0 else +( (g -(x, 1)) , 2)
-       g(x) = if zero?(x) then 0 else +((f -(x, 1)), 2)
-       in (f 5)
+letmutable x = 1 in begin set x = 2; let y = 2 in begin +(x, y) end end
 "))
