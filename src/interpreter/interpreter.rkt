@@ -5,7 +5,23 @@
 (struct env ())
 (struct empty-env env () #:transparent)
 (struct extend-env env (id value parent) #:transparent)
-(struct extend-env-rec env (name-param-exp-list parent) #:transparent)
+(struct extend-env-rec env (name-proc-list parent) #:transparent)
+
+(define (new-env-rec name-param-exp-list parent)
+  (letrec ([name-proc-list
+            (map (lambda (x)
+                   (match x
+                     [(name-param-exp n p e) (cons n (newref (procedure p e parent)))]))
+                 name-param-exp-list)]
+           [new-env
+            (extend-env-rec name-proc-list parent)])
+    (begin
+      (for ([p name-proc-list])
+        (match p
+          [(cons name proc-ref)
+           (set-procedure-env! (deref proc-ref) new-env)]))
+      new-env)))
+
 
 (struct name-param-exp (name param expression))
 
@@ -15,21 +31,21 @@
      (cond
        [(eq? var id) value]
        [else (apply-env parent var)])]
-    [(extend-env-rec name-param-exp-list parent)
-     (let ([matched-n-p-e
+    [(extend-env-rec name-procref-list parent)
+     (let ([matched-proc-ref
             (findf
              (lambda (x)
                (match x
-                 [(name-param-exp n p e) (eq? n var)]))
-             name-param-exp-list)])
-       (cond [(false? matched-n-p-e) (apply-env parent var)]
+                 [(cons name proc-ref) (eq? name var)]))
+             name-procref-list)])
+       (cond [(false? matched-proc-ref) (apply-env parent var)]
              [else
-              (match matched-n-p-e
-                [(name-param-exp n p e) (newref (procedure p e the-env))])]))]))
+              (match matched-proc-ref
+                [(cons name proc-ref) proc-ref])]))]))
 
 (define init-env (empty-env))
 
-(struct procedure (param expression env) #:transparent)
+(struct procedure (param expression env) #:transparent #:mutable)
 
 (define (value-of-proc param body env)
   (procedure param body env))
@@ -41,7 +57,7 @@
     [(list exp rest ...) (begin (value-of exp env) (value-of-begin-exp rest env))]))
 
 (define (value-of-let-rec name-param-exp-list body env)
-  (value-of body (extend-env-rec
+  (value-of body (new-env-rec
                   (map
                    (lambda (x)
                      (match x [(ast-name-param-exp (ast-identifer n) (ast-identifer p) e) (name-param-exp n p e)]))
@@ -78,11 +94,11 @@
 
 (define (value-of-source source)
   (begin
-  (initialize-the-store!)
-  (value-of (let ([ast (parse source)])
-              (println (list "ast!!-->" ast))
-              ast)
-            init-env)))
+    (initialize-the-store!)
+    (value-of (let ([ast (parse source)])
+                (println (list "ast!!-->" ast))
+                ast)
+              init-env)))
 
 (println (value-of-source "
 letrec f(x) = if zero?(x) then 0 else +( (g -(x, 1)) , 2)
