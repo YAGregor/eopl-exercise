@@ -9,7 +9,7 @@
 
 (define-tokens basic [IDENTIFIER NUMBER TRUE FALSE OPERATION])
 (define-empty-tokens puct
-  [LPAREN RPAREN COMMA EQ IN LET THEN ELSE IF EMPTYLIST PROC LET-REC BEGIN END SEMICOLON SET])
+  [LPAREN RPAREN COMMA EQ IN LET THEN ELSE IF EMPTYLIST PROC LET-REC BEGIN END SEMICOLON SET SET-DYNAMIC DURING])
 
 (define let-lexer
   (lexer-src-pos
@@ -29,6 +29,8 @@
    ["emptylist" (token-EMPTYLIST)]
    ["proc" (token-PROC)]
    ["set" (token-SET)]
+   ["setdynamic" (token-SET-DYNAMIC)]
+   ["during" (token-DURING)]
    [#\= (token-EQ)]
    [(:or "zero?" "minus" "equal?" "greater?" "less?" #\+  #\- #\* #\/
          "cons" "list" "car" "cdr")
@@ -142,8 +144,17 @@
     [expression <- expression/p]
     (pure (ast-assign id expression))))
 
+(define set-dynamic/p
+  (do (token/p 'SET-DYNAMIC)
+    [id <- identifier/p]
+    (token/p 'EQ)
+    [bind-exp <- expression/p]
+    (token/p 'DURING)
+    [body-exp <- expression/p]
+    (pure (ast-dynamic-set id bind-exp body-exp))))
+
 (define expression/p (or/p number/p identifier/p let/p let-rec/p operation/p emptylist/p
-                           proc/p proc-call/p if/p begin-exp/p assign/p))
+                           proc/p proc-call/p if/p begin-exp/p assign/p set-dynamic/p))
 
 (define program/p
   (do [p <- expression/p]
@@ -167,7 +178,8 @@
 (struct ast-name-param-exp (name param exp) #:transparent)
 (struct ast-let-rec expression (name-param-exp-list body) #:transparent)
 (struct ast-begin expression (exp-list) #:transparent)
-(struct ast-assign expression (id expression))
+(struct ast-assign expression (id expression) #:transparent)
+(struct ast-dynamic-set expression (id bind-exp body-exp) #:transparent)
 
 (define (parse source-code)
   (parse-let-syntax-tree source-code))
@@ -175,5 +187,5 @@
 (provide
  (struct-out ast-number) (struct-out ast-boolean) (struct-out ast-identifer) (struct-out ast-if) (struct-out ast-if) (struct-out ast-in) (struct-out ast-in) (struct-out ast-operation)
  (struct-out ast-emptylist) (struct-out ast-proc) (struct-out ast-proc-call) (struct-out ast-let-rec) (struct-out ast-begin) (struct-out ast-name-param-exp)
- (struct-out ast-assign)
+ (struct-out ast-assign) (struct-out ast-dynamic-set)
  parse-let-syntax-tree parse)

@@ -71,6 +71,13 @@
       [(procedure param exp p-env)
        (value-of exp (extend-env param (newref param-value) p-env))])))
 
+(define (value-of-dynamic-set id bind-exp body-exp env)
+  (let ([init-ref-value (deref (apply-env env id))])
+    (setref! (apply-env env id) (value-of bind-exp env))
+    (let ([return-value (value-of body-exp env)])
+      (setref! (apply-env env id) init-ref-value)
+      return-value)))
+
 (define (value-of expr env)
   (match expr
     [(ast-number v) v]
@@ -90,7 +97,8 @@
     [(ast-proc-call expression param) (value-of-proc-call expression param env)]
     [(ast-begin exp-list) (value-of-begin-exp exp-list env)]
     [(ast-let-rec name-param-exp-list body) (value-of-let-rec name-param-exp-list body env)]
-    [(ast-assign (ast-identifer id) expression) (setref! (apply-env env id) (value-of expression env))]))
+    [(ast-assign (ast-identifer id) expression) (setref! (apply-env env id) (value-of expression env))]
+    [(ast-dynamic-set (ast-identifer id) bind-exp body-exp) (value-of-dynamic-set id bind-exp body-exp env)]))
 
 (define (value-of-source source)
   (begin
@@ -101,7 +109,8 @@
               init-env)))
 
 (println (value-of-source "
-letrec f(x) = if zero?(x) then 0 else +( (g -(x, 1)) , 2)
-       g(x) = if zero?(x) then 0 else +((f -(x, 1)), 2)
-       in (f 5)
+let x = 11
+  in let p = proc (y) -(y,x)
+        in -(setdynamic x = 17 during (p 22),
+  (p 13))
 "))
