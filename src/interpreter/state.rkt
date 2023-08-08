@@ -25,7 +25,7 @@
                  (match store
                    [(list curr rest ...)
                     (cond
-                      [(eq? n 0) (list v)]
+                      [(eq? n 0) (cons v rest)]
                       [else (cons curr (set-ref-inner (- n 1) rest))])]))])
        (set! the-store (set-ref-inner r-n the-store)))]))
 
