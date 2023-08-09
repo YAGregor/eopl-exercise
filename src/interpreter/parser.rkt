@@ -9,7 +9,7 @@
 
 (define-tokens basic [IDENTIFIER NUMBER TRUE FALSE OPERATION])
 (define-empty-tokens puct
-  [LPAREN RPAREN COMMA EQ IN LET THEN ELSE IF EMPTYLIST PROC LET-REC BEGIN END SEMICOLON])
+  [LPAREN RPAREN COMMA EQ IN LET THEN ELSE IF EMPTYLIST PROC LET-REC BEGIN END])
 
 (define let-lexer
   (lexer-src-pos
@@ -22,7 +22,6 @@
    ["letrec" (token-LET-REC)]
    ["begin" (token-BEGIN)]
    ["end" (token-END)]
-   [#\; (token-SEMICOLON)]
    ["in" (token-IN)]
    ["then" (token-THEN)]
    ["else" (token-ELSE)]
@@ -30,7 +29,7 @@
    ["proc" (token-PROC)]
    [#\= (token-EQ)]
    [(:or "zero?" "minus" "equal?" "greater?" "less?" #\+  #\- #\* #\/
-         "cons" "list" "car" "cdr" "newref" "deref" "setref")
+         "cons" "list" "car" "cdr" "not" "pair" "left" "right" "setleft" "setright")
     (token-OPERATION (string->symbol lexeme))]
    [(:: (:* numeric) (:+ alphabetic) (:* numeric) (:* symbolic))
     (token-IDENTIFIER (string->symbol lexeme))]
@@ -134,8 +133,17 @@
     (token/p 'END)
     (pure (ast-begin (cons first-exp tail-exp)))))
 
+(define assign/p
+  (do (token/p 'SET)
+    [id <- identifier/p]
+    (token/p 'EQ)
+    [expression <- expression/p]
+    (pure (ast-assign id expression))))
+
+
 (define expression/p (or/p number/p identifier/p let/p let-rec/p operation/p emptylist/p
-                           proc/p proc-call/p if/p begin-exp/p))
+                           proc/p proc-call/p if/p begin-exp/p assign/p))
+
 
 (define program/p
   (do [p <- expression/p]
@@ -159,6 +167,7 @@
 (struct ast-name-param-exp (name param exp) #:transparent)
 (struct ast-let-rec expression (name-param-exp-list body) #:transparent)
 (struct ast-begin expression (exp-list) #:transparent)
+(struct ast-assign expression (id expression))
 
 (define (parse source-code)
   (parse-let-syntax-tree source-code))
@@ -166,4 +175,5 @@
 (provide
  (struct-out ast-number) (struct-out ast-boolean) (struct-out ast-identifer) (struct-out ast-if) (struct-out ast-if) (struct-out ast-in) (struct-out ast-in) (struct-out ast-operation)
  (struct-out ast-emptylist) (struct-out ast-proc) (struct-out ast-proc-call) (struct-out ast-let-rec) (struct-out ast-begin) (struct-out ast-name-param-exp)
+ (struct-out ast-assign) (struct-out expression)
  parse-let-syntax-tree parse)

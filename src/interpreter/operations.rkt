@@ -75,6 +75,27 @@
   (match params
     [(list ref value) (setref! ref value)]))
 
+(define (op-make-pair params)
+  (match params
+    [(list left right) (a-pair (newref left) (newref right))]))
+
+(define (op-left params)
+  (match params
+    [(list (a-pair left _)) (deref left)]))
+
+(define (op-right params)
+  (match params
+    [(list (a-pair _ right)) (deref right)]))
+
+
+(define (op-set-left params)
+  (match params
+    [(list (a-pair left _) value) (setref! left value)]))
+
+(define (op-set-right params)
+  (match params
+    [(list (a-pair _ right) value) (setref! right value)]))
+
 (define (value-of-op op-name params)
   (match op-name
     ['zero? (op-zero? params)]
@@ -92,6 +113,11 @@
     ['cdr (op-cdr params)]
     ['newref (op-newref params)]
     ['deref (op-deref params)]
-    ['setref (op-setref params)]))
+    ['setref (op-setref params)]
+    ['pair (op-make-pair params)]
+    ['left (op-left params)]
+    ['right (op-right params)]
+    ['setleft (op-set-left params)]
+    ['setright (op-set-right params)]))
 
 (provide op-zero? op-minus op-equals? op-greater? op-less? op-+ op-- op-* op-/ op-cons op-list op-car op-cdr value-of-op)

@@ -75,29 +75,10 @@
     [(ast-begin exp-list) (value-of-begin-exp exp-list env)]
     [(ast-let-rec name-param-exp-list body) (value-of-let-rec name-param-exp-list body env)]))
 
-(define (value-of-source source)
+(define (run source)
   (begin
-  (initialize-the-store!)
-  (value-of (let ([ast (parse source)])
-              (println (list "ast!!-->" ast))
-              ast)
-            init-env)))
+    (initialize-the-store!)
+    (value-of (parse source)
+              init-env)))
 
-(println (value-of-source "
-let x = newref(0)
-in letrec even(dummy)
-          = if zero?(deref(x))
-            then 1
-            else begin
-              setref(x, -(deref(x),1));
-              (odd 888)
-            end
-          odd(dummy)
-          = if zero?(deref(x))
-            then 0
-            else begin
-              setref(x, -(deref(x),1));
-              (even 888)
-            end
-in begin setref(x,12); (odd 888) end
-"))
+(provide run)
