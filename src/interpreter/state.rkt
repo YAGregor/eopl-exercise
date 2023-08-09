@@ -2,7 +2,7 @@
 
 (define the-store null)
 
-(struct ref (n))
+(struct ref (n) #:transparent)
 
 (define (initialize-the-store!) (set! the-store null))
 

@@ -92,16 +92,43 @@
     [(ast-let-rec name-param-exp-list body) (value-of-let-rec name-param-exp-list body env)]
     [(ast-assign (ast-identifer id) expression) (setref! (apply-env env id) (value-of expression env))]))
 
+(define (interpret-statement statement env)
+  (match statement
+    [(statement-assign (ast-identifer id) expression)
+     (setref! (apply-env env id) (value-of expression env))]
+    [(statement-print expression) (println (value-of expression env ))]
+    [(statement-if cond-expression true-statement false-statement)
+     (cond [(value-of cond-expression env) (interpret-statement true-statement env)]
+           [else (interpret-statement false-statement env)])]
+    [(statement-while cond-expression do-statement)
+     (cond [(value-of cond-expression env)
+            (begin
+              (interpret-statement do-statement env)
+              (interpret-statement statement env))]
+           [else null])]
+    [(statement-var identifier-list body-statement)
+     (let* ([all-var-list (map ast-identifer-symbol identifier-list)]
+            [new-env (letrec ([gen-new-env
+                               (lambda (id-list)
+                                 (match id-list
+                                   [(list) env]
+                                   [(list id rest ...)
+                                    (extend-env id (newref null) (gen-new-env rest))]))])
+                       (gen-new-env all-var-list))])
+       (interpret-statement body-statement new-env))]
+    [(statement-block statement-list)
+     (for ([s statement-list])
+       (interpret-statement s env))]))
+
 (define (value-of-source source)
   (begin
     (initialize-the-store!)
-    (value-of (let ([ast (parse source)])
-                (println (list "ast!!-->" ast))
-                ast)
-              init-env)))
+    (interpret-statement (let ([ast (parse source)])
+                           (println (list "ast!!-->" ast))
+                           ast)
+                         init-env)))
 
 (println (value-of-source "
-letrec f(x) = if zero?(x) then 0 else +( (g -(x, 1)) , 2)
-       g(x) = if zero?(x) then 0 else +((f -(x, 1)), 2)
-       in (f 5)
-"))
+var f,x; {f = proc (x) proc(y) *(x,y);
+x = 3;
+print ((f 4) x)}"))

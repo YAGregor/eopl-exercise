@@ -9,13 +9,15 @@
 
 (define-tokens basic [IDENTIFIER NUMBER TRUE FALSE OPERATION])
 (define-empty-tokens puct
-  [LPAREN RPAREN COMMA EQ IN LET THEN ELSE IF EMPTYLIST PROC LET-REC BEGIN END SEMICOLON SET])
+  [LPAREN RPAREN COMMA EQ IN LET THEN ELSE IF EMPTYLIST PROC LET-REC BEGIN END SEMICOLON SET PRINT VAR WHILE LBRACES RBRACES])
 
 (define let-lexer
   (lexer-src-pos
    [(:or whitespace blank) (void)]
    [#\( (token-LPAREN)]
    [#\) (token-RPAREN)]
+   [#\{ (token-LBRACES)]
+   [#\} (token-RBRACES)]
    [#\, (token-COMMA)]
    ["if" (token-IF)]
    ["let" (token-LET)]
@@ -29,9 +31,12 @@
    ["emptylist" (token-EMPTYLIST)]
    ["proc" (token-PROC)]
    ["set" (token-SET)]
+   ["print" (token-PRINT)]
+   ["var" (token-VAR)]
+   ["while" (token-WHILE)]
    [#\= (token-EQ)]
    [(:or "zero?" "minus" "equal?" "greater?" "less?" #\+  #\- #\* #\/
-         "cons" "list" "car" "cdr")
+         "cons" "list" "car" "cdr" "not")
     (token-OPERATION (string->symbol lexeme))]
    [(:: (:* numeric) (:+ alphabetic) (:* numeric) (:* symbolic))
     (token-IDENTIFIER (string->symbol lexeme))]
@@ -142,15 +147,84 @@
     [expression <- expression/p]
     (pure (ast-assign id expression))))
 
+
 (define expression/p (or/p number/p identifier/p let/p let-rec/p operation/p emptylist/p
-                           proc/p proc-call/p if/p begin-exp/p assign/p))
+                           proc/p proc-call/p if/p begin-exp/p))
+
+(define statement-assign/p
+  (do [id <- identifier/p]
+    (token/p 'EQ)
+    [expression <- expression/p]
+    (pure (statement-assign id expression))))
+
+(define statement-print/p
+  (do (token/p 'PRINT)
+    [expresison <- expression/p]
+    (pure (statement-print expresison))))
+
+(define statement-block/p
+  (do (token/p 'LBRACES)
+    [block <- statement-block-content/p]
+    (token/p 'RBRACES)
+    (pure block)))
+
+(define statement-if/p
+  (do (token/p 'IF)
+    [cond-expression <- expression/p]
+    [true-statement <- statement-block/p]
+    [false-statement <- statement-block/p]
+    (pure (statement-if cond-expression true-statement false-statement))))
+
+(define statement-while/p
+  (do (token/p 'WHILE)
+    [cond-expression <- expression/p]
+    [while-statement <- statement-block/p]
+    (pure (statement-while cond-expression while-statement))))
+
+(define var-ids-tail/p
+  (do (token/p 'COMMA)
+    [id <- identifier/p]
+    (pure id)))
+
+(define statement-var-ids/p
+  (do [head <- identifier/p]
+    [tails <- (many/p var-ids-tail/p)]
+    (pure (cons head tails))))
+
+(define statement-var/p
+  (do (token/p 'VAR)
+    [identifier-list <- statement-var-ids/p]
+    (token/p 'SEMICOLON)
+    [body-statement <- statement/p]
+    (pure (statement-var identifier-list body-statement))))
+
+(define statement/p
+  (or/p statement-assign/p statement-print/p statement-block/p statement-if/p statement-while/p statement-var/p))
+
+(define statement-tail/p
+  (do (token/p 'SEMICOLON)
+    [statement <- statement/p]
+    (pure statement)))
+
+(define statement-block-content/p
+  (do [head <- statement/p]
+    [tails <- (many/p statement-tail/p)]
+    (pure (statement-block (cons head tails)))))
 
 (define program/p
-  (do [p <- expression/p]
+  (do [p <- statement/p]
     [_ <- eof/p]
     (pure p)))
 
 (define (parse-let-syntax-tree src-text) (parse-result! (parse-tokens program/p (lex-let src-text))))
+
+(struct statement () #:transparent)
+(struct statement-assign statement (id expression) #:transparent)
+(struct statement-print statement (expression) #:transparent)
+(struct statement-if statement (cond-expression true-statement false-statement) #:transparent)
+(struct statement-while statement (cond-expression do-statement) #:transparent)
+(struct statement-var statement (identifier-list body-statement) #:transparent)
+(struct statement-block statement (statement-line-list) #:transparent)
 
 (struct expression () #:transparent)
 
@@ -175,5 +249,7 @@
 (provide
  (struct-out ast-number) (struct-out ast-boolean) (struct-out ast-identifer) (struct-out ast-if) (struct-out ast-if) (struct-out ast-in) (struct-out ast-in) (struct-out ast-operation)
  (struct-out ast-emptylist) (struct-out ast-proc) (struct-out ast-proc-call) (struct-out ast-let-rec) (struct-out ast-begin) (struct-out ast-name-param-exp)
- (struct-out ast-assign)
+ (struct-out ast-assign) (struct-out expression)
+ (struct-out statement-assign) (struct-out statement-print) (struct-out statement-block) (struct-out statement-if) (struct-out statement-while) (struct-out statement-var)
+  (struct-out statement)
  parse-let-syntax-tree parse)

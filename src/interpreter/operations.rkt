@@ -75,9 +75,14 @@
   (match params
     [(list ref value) (setref! ref value)]))
 
+(define (op-not params)
+  (match params
+    [(list (? boolean? v)) (not v)]))
+
 (define (value-of-op op-name params)
   (match op-name
     ['zero? (op-zero? params)]
+    ['not (op-not params)]
     ['minus (op-minus params)]
     ['equal? (op-equals? params)]
     ['greater? (op-greater? params)]
