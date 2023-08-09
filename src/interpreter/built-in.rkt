@@ -10,4 +10,7 @@
 
 (struct a-pair (left right))
 
-(provide default-empty-list (struct-out eopl-pare) (struct-out eopl-empty-list) (struct-out eopl-list) (struct-out a-pair))
+(struct a-array (refs) #:mutable)
+
+(provide default-empty-list (struct-out eopl-pare) (struct-out eopl-empty-list) (struct-out eopl-list) (struct-out a-pair)
+         (struct-out a-array))

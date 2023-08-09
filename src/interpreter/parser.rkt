@@ -29,7 +29,8 @@
    ["proc" (token-PROC)]
    [#\= (token-EQ)]
    [(:or "zero?" "minus" "equal?" "greater?" "less?" #\+  #\- #\* #\/
-         "cons" "list" "car" "cdr" "not" "pair" "left" "right" "setleft" "setright")
+         "cons" "list" "car" "cdr" "not" "pair" "left" "right" "setleft" "setright"
+         "newarray" "arrayref" "arrayset")
     (token-OPERATION (string->symbol lexeme))]
    [(:: (:* numeric) (:+ alphabetic) (:* numeric) (:* symbolic))
     (token-IDENTIFIER (string->symbol lexeme))]
@@ -63,6 +64,12 @@
     (token/p 'ELSE)
     [false-expr <- expression/p]
     (pure (ast-if condition true-expr false-expr))))
+
+(define let-bind/p
+  (do [identifier <- identifier/p]
+    (token/p 'EQ)
+    [expr-bind <- expression/p]
+    (pure (cons identifier expr-bind))))
 
 (define let/p
   (do (token/p 'LET)
@@ -167,7 +174,7 @@
 (struct ast-name-param-exp (name param exp) #:transparent)
 (struct ast-let-rec expression (name-param-exp-list body) #:transparent)
 (struct ast-begin expression (exp-list) #:transparent)
-(struct ast-assign expression (id expression))
+(struct ast-assign expression (id expression) #:transparent)
 
 (define (parse source-code)
   (parse-let-syntax-tree source-code))

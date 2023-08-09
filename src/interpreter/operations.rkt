@@ -96,28 +96,45 @@
   (match params
     [(list (a-pair _ right) value) (setref! right value)]))
 
+(define (op-newarray params)
+  (a-array (map newref params)))
+
+(define (op-arrayref params)
+  (match params
+    [(list (a-array ref-list) index) (deref (list-ref ref-list index))]))
+
+(define (op-arrayset params)
+  (match params
+    [(list array index value)
+     (begin
+       (set-a-array-refs! array (list-set (a-array-refs array) index (newref value)))
+       a-array)]))
+
 (define (value-of-op op-name params)
-  (match op-name
-    ['zero? (op-zero? params)]
-    ['minus (op-minus params)]
-    ['equal? (op-equals? params)]
-    ['greater? (op-greater? params)]
-    ['less? (op-less? params)]
-    ['+ (op-+ params)]
-    ['- (op-- params)]
-    ['* (op-* params)]
-    ['/ (op-/ params)]
-    ['cons (op-cons params)]
-    ['list (op-list params)]
-    ['car (op-car params)]
-    ['cdr (op-cdr params)]
-    ['newref (op-newref params)]
-    ['deref (op-deref params)]
-    ['setref (op-setref params)]
-    ['pair (op-make-pair params)]
-    ['left (op-left params)]
-    ['right (op-right params)]
-    ['setleft (op-set-left params)]
-    ['setright (op-set-right params)]))
+  ((match op-name
+     ['zero? op-zero?]
+     ['minus op-minus]
+     ['equal? op-equals?]
+     ['greater? op-greater?]
+     ['less? op-less?]
+     ['+ op-+]
+     ['- op--]
+     ['* op-*]
+     ['/ op-/]
+     ['cons op-cons]
+     ['list op-list]
+     ['car op-car]
+     ['cdr op-cdr]
+     ['newref op-newref]
+     ['deref op-deref]
+     ['setref op-setref]
+     ['pair op-make-pair]
+     ['left op-left]
+     ['right op-right]
+     ['setleft op-set-left]
+     ['setright op-set-right]
+     ['newarray op-newarray]
+     ['arrayref op-arrayref]
+     ['arrayset op-arrayset]) params))
 
 (provide op-zero? op-minus op-equals? op-greater? op-less? op-+ op-- op-* op-/ op-cons op-list op-car op-cdr value-of-op)
