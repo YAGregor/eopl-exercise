@@ -55,6 +55,16 @@
       [(procedure param exp p-env)
        (value-of exp (extend-env param param-value p-env))])))
 
+(define (extend-env-id-exp-list id-exp-list env)
+  (match id-exp-list
+    [(list ) env]
+    [(list (cons
+            (ast-identifer id) expression)
+           rest ...)
+     (extend-env id
+                 (value-of expression env)
+                 (extend-env-id-exp-list rest env))]))
+
 (define (value-of expr env)
   (match expr
     [(ast-number v) v]
@@ -66,9 +76,7 @@
        (match cond-value
          [#t (value-of true-expr env)]
          [#f (value-of false-expr env)]))]
-    [(ast-in (ast-identifer id) bind-value value-return)
-     (value-of value-return
-               (extend-env id (value-of bind-value env) env))]
+    [(ast-let id-exp-list value-return) (value-of value-return (extend-env-id-exp-list id-exp-list env))]
     [(ast-operation name parameters) (value-of-op name (map (lambda (v) (value-of v env)) parameters))]
     [(ast-proc (ast-identifer identifier) expression) (value-of-proc identifier expression env)]
     [(ast-proc-call expression param) (value-of-proc-call expression param env)]

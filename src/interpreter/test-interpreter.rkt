@@ -5,7 +5,7 @@
 let glo = pair(11,22)
     in let f = proc (loc)
         let d1 = setright(loc, left(loc))
-            in let d2 = setleft(glo, 99)
+                    in let d2 = setleft(glo, 99)
         in -(left(loc),right(loc))
 in (f glo)
 ")
@@ -14,8 +14,8 @@ in (f glo)
 let a = newarray(2,-99)
     p = proc (x)
         let v = arrayref(x,1)
-        in arrayset(x,1,-(v,-1))
-in begin arrayset(a,1,0); (p a); (p a); arrayref(a,1) end
+            in arrayset(x,1,-(v,-1))
+in begin arrayref(a,1); (p a); (p a); arrayref(a, 1) end
 ")
 
 (define interpreter-tests
@@ -26,7 +26,7 @@ in begin arrayset(a,1,0); (p a); (p a); arrayref(a,1) end
     (check = 88 (run source)))
    (test-case
    "mutable-array"
-   (check = 0 (run array-source)))))
+   (check = -97 (run array-source)))))
 
 (module+ test
   (run-tests interpreter-tests))

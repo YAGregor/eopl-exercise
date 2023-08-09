@@ -9,7 +9,7 @@
 
 (define-tokens basic [IDENTIFIER NUMBER TRUE FALSE OPERATION])
 (define-empty-tokens puct
-  [LPAREN RPAREN COMMA EQ IN LET THEN ELSE IF EMPTYLIST PROC LET-REC BEGIN END])
+  [LPAREN RPAREN COMMA EQ IN LET THEN ELSE IF EMPTYLIST PROC LET-REC SEMICOLON BEGIN END])
 
 (define let-lexer
   (lexer-src-pos
@@ -22,6 +22,7 @@
    ["letrec" (token-LET-REC)]
    ["begin" (token-BEGIN)]
    ["end" (token-END)]
+   [#\; (token-SEMICOLON)]
    ["in" (token-IN)]
    ["then" (token-THEN)]
    ["else" (token-ELSE)]
@@ -73,12 +74,10 @@
 
 (define let/p
   (do (token/p 'LET)
-    [identifier <- identifier/p]
-    (token/p 'EQ)
-    [expr-bind <- expression/p]
+    [id-exp-list <- (many+/p let-bind/p)]
     (token/p 'IN)
     [expr-return <- expression/p]
-    (pure (ast-in identifier expr-bind expr-return))))
+    (pure (ast-let id-exp-list expr-return))))
 
 (define let-rec-name-param-exp/p
   (do [name <- identifier/p]
@@ -166,7 +165,7 @@
 (struct ast-identifer expression (symbol) #:transparent)
 
 (struct ast-if expression (cond true false) #:transparent)
-(struct ast-in expression (identifier expression-bind expression) #:transparent)
+(struct ast-let expression (id-exp-list expression) #:transparent)
 (struct ast-operation expression (name parameters) #:transparent)
 (struct ast-emptylist expression () #:transparent)
 (struct ast-proc expression (identifier-list expression) #:transparent)
@@ -180,7 +179,7 @@
   (parse-let-syntax-tree source-code))
 
 (provide
- (struct-out ast-number) (struct-out ast-boolean) (struct-out ast-identifer) (struct-out ast-if) (struct-out ast-if) (struct-out ast-in) (struct-out ast-in) (struct-out ast-operation)
+ (struct-out ast-number) (struct-out ast-boolean) (struct-out ast-identifer) (struct-out ast-if) (struct-out ast-if) (struct-out ast-let) (struct-out ast-operation)
  (struct-out ast-emptylist) (struct-out ast-proc) (struct-out ast-proc-call) (struct-out ast-let-rec) (struct-out ast-begin) (struct-out ast-name-param-exp)
  (struct-out ast-assign) (struct-out expression)
  parse-let-syntax-tree parse)

@@ -108,7 +108,7 @@
     [(list array index value)
      (begin
        (set-a-array-refs! array (list-set (a-array-refs array) index (newref value)))
-       a-array)]))
+       array)]))
 
 (define (value-of-op op-name params)
   ((match op-name
