@@ -9,7 +9,7 @@
 
 (define-tokens basic [IDENTIFIER NUMBER TRUE FALSE OPERATION])
 (define-empty-tokens puct
-  [LPAREN RPAREN COMMA EQ IN LET THEN ELSE IF EMPTYLIST PROC LET-REC SEMICOLON BEGIN END SET])
+  [LPAREN RPAREN COMMA EQ IN LET THEN ELSE IF EMPTYLIST PROC LET-REC SEMICOLON BEGIN END SET REF])
 
 (define let-lexer
   (lexer-src-pos
@@ -29,9 +29,10 @@
    ["else" (token-ELSE)]
    ["emptylist" (token-EMPTYLIST)]
    ["proc" (token-PROC)]
+   ["ref" (token-REF)]
    [#\= (token-EQ)]
    [(:or "zero?" "minus" "equal?" "greater?" "less?" #\+  #\- #\* #\/
-         "cons" "list" "car" "cdr" "not" "pair" "left" "right" "setleft" "setright"
+         "cons" "list" "car" "cdr" "not" "pair" "left" "right" "setleft" "deref" "setref" "setright"
          "newarray" "arrayref" "arrayset")
     (token-OPERATION (string->symbol lexeme))]
    [(:: (:* numeric) (:+ alphabetic) (:* numeric) (:* symbolic))
@@ -147,9 +148,13 @@
     [expression <- expression/p]
     (pure (ast-assign id expression))))
 
+(define ref/p
+  (do (token/p 'REF)
+    [id <- identifier/p]
+    (pure (ast-ref id))))
 
 (define expression/p (or/p number/p identifier/p let/p let-rec/p operation/p emptylist/p
-                           proc/p proc-call/p if/p begin-exp/p assign/p))
+                           proc/p proc-call/p if/p begin-exp/p assign/p ref/p))
 
 
 (define program/p
@@ -175,6 +180,7 @@
 (struct ast-let-rec expression (name-param-exp-list body) #:transparent)
 (struct ast-begin expression (exp-list) #:transparent)
 (struct ast-assign expression (id expression) #:transparent)
+(struct ast-ref expression (id) #:transparent)
 
 (define (parse source-code)
   (parse-let-syntax-tree source-code))
@@ -182,5 +188,5 @@
 (provide
  (struct-out ast-number) (struct-out ast-boolean) (struct-out ast-identifer) (struct-out ast-if) (struct-out ast-if) (struct-out ast-let) (struct-out ast-operation)
  (struct-out ast-emptylist) (struct-out ast-proc) (struct-out ast-proc-call) (struct-out ast-let-rec) (struct-out ast-begin) (struct-out ast-name-param-exp)
- (struct-out ast-assign) (struct-out expression)
+ (struct-out ast-assign) (struct-out ast-ref) (struct-out expression)
  parse-let-syntax-tree parse)

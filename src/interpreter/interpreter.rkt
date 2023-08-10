@@ -53,9 +53,7 @@
   (let ([proc-value (value-of proc env)]
         [param-ref-list
          (map (lambda (p)
-                (match p
-                  [(ast-identifer id) (apply-env env id)]
-                  [_ (newref (value-of p env))]))
+               (newref (value-of p env)))
               param-list)])
     (match proc-value
       [(procedure p-param-list exp p-env)
@@ -77,6 +75,7 @@
 
 (define (value-of expr env)
   (match expr
+    [(ast-ref (ast-identifer id)) (id-ref (apply-env env id))]
     [(ast-number v) v]
     [(ast-boolean v) v]
     [(ast-emptylist ) (eopl-empty-list )]

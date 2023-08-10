@@ -12,5 +12,7 @@
 
 (struct a-array (refs) #:mutable)
 
+(struct id-ref (r))
+
 (provide default-empty-list (struct-out eopl-pare) (struct-out eopl-empty-list) (struct-out eopl-list) (struct-out a-pair)
-         (struct-out a-array))
+         (struct-out a-array) (struct-out id-ref))

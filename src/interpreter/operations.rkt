@@ -69,11 +69,11 @@
 
 (define (op-deref params)
   (match params
-    [(list ref) (deref ref)]))
+    [(list (id-ref ref)) (deref ref)]))
 
 (define (op-setref params)
   (match params
-    [(list ref value) (setref! ref value)]))
+    [(list (id-ref ref) value) (setref! ref value)]))
 
 (define (op-make-pair params)
   (match params
