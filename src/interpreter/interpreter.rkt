@@ -25,14 +25,14 @@
        (cond [(false? matched-n-p-e) (apply-env parent var)]
              [else
               (match matched-n-p-e
-                [(name-param-exp n p e) (newref (procedure p e the-env))])]))]))
+                [(name-param-exp n p e) (newref (procedure (list p) e the-env))])]))]))
 
 (define init-env (empty-env))
 
-(struct procedure (param expression env) #:transparent)
+(struct procedure (param-list expression env) #:transparent)
 
-(define (value-of-proc param body env)
-  (procedure param body env))
+(define (value-of-proc param-list body env)
+  (procedure (map ast-identifer-symbol param-list) body env))
 
 
 (define (value-of-begin-exp exp-list env)
@@ -48,15 +48,22 @@
                    name-param-exp-list)
                   env)))
 
-(define (value-of-proc-call proc param env)
+
+(define (value-of-proc-call proc param-list env)
   (let ([proc-value (value-of proc env)]
-        [param-ref
-         (match param
-           [(ast-identifer id) (apply-env env id)]
-           [_ (newref (value-of param env))])])
+        [param-ref-list
+         (map (lambda (p)
+                (match p
+                  [(ast-identifer id) (apply-env env id)]
+                  [_ (newref (value-of p env))]))
+              param-list)])
     (match proc-value
-      [(procedure p-param exp p-env)
-       (value-of exp (extend-env p-param param-ref p-env))])))
+      [(procedure p-param-list exp p-env)
+       (value-of
+        exp
+        (foldl
+         (lambda (p-param ref env) (extend-env p-param ref env))
+         p-env p-param-list param-ref-list))])))
 
 (define (extend-env-id-exp-list id-exp-list env)
   (match id-exp-list
@@ -73,7 +80,7 @@
     [(ast-number v) v]
     [(ast-boolean v) v]
     [(ast-emptylist ) (eopl-empty-list )]
-    [(ast-identifer id) (deref (apply-env env id))]
+    [(ast-identifer id)  (deref (apply-env env id))]
     [(ast-if cond-expr true-expr false-expr)
      (let [(cond-value (value-of cond-expr env))]
        (match cond-value
@@ -82,8 +89,8 @@
     [(ast-let id-exp-list value-return) (value-of value-return (extend-env-id-exp-list id-exp-list env))]
     [(ast-assign (ast-identifer id) value-exp) (setref! (apply-env env id) (value-of value-exp env))]
     [(ast-operation name parameters) (value-of-op name (map (lambda (v) (value-of v env)) parameters))]
-    [(ast-proc (ast-identifer identifier) expression) (value-of-proc identifier expression env)]
-    [(ast-proc-call expression param) (value-of-proc-call expression param env)]
+    [(ast-proc identifier-list expression) (value-of-proc identifier-list expression env)]
+    [(ast-proc-call expression param-list) (value-of-proc-call expression param-list env)]
     [(ast-begin exp-list) (value-of-begin-exp exp-list env)]
     [(ast-let-rec name-param-exp-list body) (value-of-let-rec name-param-exp-list body env)]))
 

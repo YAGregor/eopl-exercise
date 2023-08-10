@@ -23,6 +23,14 @@ let b = 3
                 in ((p b) b)
 ")
 
+(define test-multi-arg "
+let f = proc (x y) +(x, y) in (f 2 2)
+")
+
+(define test-no-arg "
+let f = proc () 4 in (f )
+")
+
 (define interpreter-tests
   (test-suite
    "tests for eopl interpreter"
@@ -36,8 +44,14 @@ let b = 3
     "test let rec"
     (check-equal? 4 (run test-proc-rec)))
    (test-case
-   "test call ref"
-   (check-equal? 4 (run test-call-by-ref)))))
+    "test call ref"
+    (check-equal? 4 (run test-call-by-ref)))
+   (test-case
+    "simple multi arg"
+    (check-equal? 4 (run test-multi-arg)))
+    (test-case
+    "no arg"
+    (check-equal? 4 (run test-no-arg)))))
 
 (module+ test
   (run-tests interpreter-tests))

@@ -116,7 +116,7 @@
 (define proc/p
   (do (token/p 'PROC)
     (token/p 'LPAREN)
-    [identifier <- identifier/p]
+    [identifier <- (many/p identifier/p)]
     (token/p 'RPAREN)
     (expression <- expression/p)
     (pure (ast-proc identifier expression))))
@@ -124,9 +124,9 @@
 (define proc-call/p
   (do (token/p 'LPAREN)
     [proc <- expression/p]
-    [proc-param <- expression/p]
+    [proc-param-list <- (many/p expression/p)]
     (token/p 'RPAREN)
-    (pure (ast-proc-call proc proc-param))))
+    (pure (ast-proc-call proc proc-param-list))))
 
 (define begin-sentence/p
   (do (token/p 'SEMICOLON)
@@ -170,7 +170,7 @@
 (struct ast-operation expression (name parameters) #:transparent)
 (struct ast-emptylist expression () #:transparent)
 (struct ast-proc expression (identifier-list expression) #:transparent)
-(struct ast-proc-call expression (proc param) #:transparent)
+(struct ast-proc-call expression (proc param-list) #:transparent)
 (struct ast-name-param-exp (name param exp) #:transparent)
 (struct ast-let-rec expression (name-param-exp-list body) #:transparent)
 (struct ast-begin expression (exp-list) #:transparent)
