@@ -13,7 +13,15 @@ let f = proc (x) begin set x = 2; +(x, 0) end in +(2, (f 1))
 letrec f(x) = if zero?(x) then 1 else +(-(x, 1), 1) in (f 4)
 ")
 
-(run test-proc-rec)
+(define test-call-by-ref "
+let b = 3
+    in let p = proc (x) proc(y)
+                    begin
+                        set x = 4;
+                        y
+                    end
+                in ((p b) b)
+")
 
 (define interpreter-tests
   (test-suite
@@ -26,7 +34,10 @@ letrec f(x) = if zero?(x) then 1 else +(-(x, 1), 1) in (f 4)
     (check = 4 (run test-proc-call)))
    (test-case
     "test let rec"
-    (check-equal? 4 (run test-proc-rec)))))
+    (check-equal? 4 (run test-proc-rec)))
+   (test-case
+   "test call ref"
+   (check-equal? 4 (run test-call-by-ref)))))
 
 (module+ test
   (run-tests interpreter-tests))

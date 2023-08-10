@@ -50,10 +50,13 @@
 
 (define (value-of-proc-call proc param env)
   (let ([proc-value (value-of proc env)]
-        [param-value (value-of param env)])
+        [param-ref
+         (match param
+           [(ast-identifer id) (apply-env env id)]
+           [_ (newref (value-of param env))])])
     (match proc-value
-      [(procedure param exp p-env)
-       (value-of exp (extend-env param (newref param-value) p-env))])))
+      [(procedure p-param exp p-env)
+       (value-of exp (extend-env p-param param-ref p-env))])))
 
 (define (extend-env-id-exp-list id-exp-list env)
   (match id-exp-list
