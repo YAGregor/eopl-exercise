@@ -25,7 +25,7 @@
        (cond [(false? matched-n-p-e) (apply-env parent var)]
              [else
               (match matched-n-p-e
-                [(name-param-exp n p e) (procedure p e the-env)])]))]))
+                [(name-param-exp n p e) (newref (procedure p e the-env))])]))]))
 
 (define init-env (empty-env))
 
@@ -53,7 +53,7 @@
         [param-value (value-of param env)])
     (match proc-value
       [(procedure param exp p-env)
-       (value-of exp (extend-env param param-value p-env))])))
+       (value-of exp (extend-env param (newref param-value) p-env))])))
 
 (define (extend-env-id-exp-list id-exp-list env)
   (match id-exp-list
@@ -62,7 +62,7 @@
             (ast-identifer id) expression)
            rest ...)
      (extend-env id
-                 (value-of expression env)
+                 (newref (value-of expression env))
                  (extend-env-id-exp-list rest env))]))
 
 (define (value-of expr env)
@@ -70,13 +70,14 @@
     [(ast-number v) v]
     [(ast-boolean v) v]
     [(ast-emptylist ) (eopl-empty-list )]
-    [(ast-identifer id) (apply-env env id)]
+    [(ast-identifer id) (deref (apply-env env id))]
     [(ast-if cond-expr true-expr false-expr)
      (let [(cond-value (value-of cond-expr env))]
        (match cond-value
          [#t (value-of true-expr env)]
          [#f (value-of false-expr env)]))]
     [(ast-let id-exp-list value-return) (value-of value-return (extend-env-id-exp-list id-exp-list env))]
+    [(ast-assign (ast-identifer id) value-exp) (setref! (apply-env env id) (value-of value-exp env))]
     [(ast-operation name parameters) (value-of-op name (map (lambda (v) (value-of v env)) parameters))]
     [(ast-proc (ast-identifer identifier) expression) (value-of-proc identifier expression env)]
     [(ast-proc-call expression param) (value-of-proc-call expression param env)]

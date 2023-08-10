@@ -9,7 +9,7 @@
 
 (define-tokens basic [IDENTIFIER NUMBER TRUE FALSE OPERATION])
 (define-empty-tokens puct
-  [LPAREN RPAREN COMMA EQ IN LET THEN ELSE IF EMPTYLIST PROC LET-REC SEMICOLON BEGIN END])
+  [LPAREN RPAREN COMMA EQ IN LET THEN ELSE IF EMPTYLIST PROC LET-REC SEMICOLON BEGIN END SET])
 
 (define let-lexer
   (lexer-src-pos
@@ -22,6 +22,7 @@
    ["letrec" (token-LET-REC)]
    ["begin" (token-BEGIN)]
    ["end" (token-END)]
+   ["set" (token-SET)]
    [#\; (token-SEMICOLON)]
    ["in" (token-IN)]
    ["then" (token-THEN)]

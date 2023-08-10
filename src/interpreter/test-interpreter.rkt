@@ -1,32 +1,32 @@
 #lang racket
 (require "interpreter.rkt" rackunit rackunit/text-ui)
 
-(define source "
-let glo = pair(11,22)
-    in let f = proc (loc)
-        let d1 = setright(loc, left(loc))
-                    in let d2 = setleft(glo, 99)
-        in -(left(loc),right(loc))
-in (f glo)
+(define test-let-set "
+let x = 1 y = 2 in begin set x = 2; +(x, y) end
 ")
 
-(define array-source "
-let a = newarray(2,-99)
-    p = proc (x)
-        let v = arrayref(x,1)
-            in arrayset(x,1,-(v,-1))
-in begin arrayref(a,1); (p a); (p a); arrayref(a, 1) end
+(define test-proc-call "
+let f = proc (x) begin set x = 2; +(x, 0) end in +(2, (f 1))
 ")
+
+(define test-proc-rec "
+letrec f(x) = if zero?(x) then 1 else +(-(x, 1), 1) in (f 4)
+")
+
+(run test-proc-rec)
 
 (define interpreter-tests
   (test-suite
    "tests for eopl interpreter"
    (test-case
-    "mutable-pair"
-    (check = 88 (run source)))
+    "test let and set assign"
+    (check = 4 (run test-let-set)))
    (test-case
-   "mutable-array"
-   (check = -97 (run array-source)))))
+    "test proc call"
+    (check = 4 (run test-proc-call)))
+   (test-case
+    "test let rec"
+    (check-equal? 4 (run test-proc-rec)))))
 
 (module+ test
   (run-tests interpreter-tests))
