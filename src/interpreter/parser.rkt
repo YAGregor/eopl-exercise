@@ -34,7 +34,7 @@
          "cons" "list" "car" "cdr" "not" "pair" "left" "right" "setleft" "setright"
          "newarray" "arrayref" "arrayset")
     (token-OPERATION (string->symbol lexeme))]
-   [(:: (:* numeric) (:+ alphabetic) (:* numeric) (:* symbolic))
+   [(:: (:* numeric) (:+ (:or alphabetic #\-)) (:* numeric) (:* symbolic))
     (token-IDENTIFIER (string->symbol lexeme))]
    [(:: (:? (:or #\+ #\-)) (:+ numeric))(token-NUMBER (string->number lexeme))]
    [(eof) eof]))

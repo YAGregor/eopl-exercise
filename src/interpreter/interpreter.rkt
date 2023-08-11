@@ -31,6 +31,8 @@
 
 (struct procedure (param-list expression env) #:transparent)
 
+(struct trunk (expression env))
+
 (define (value-of-proc param-list body env)
   (procedure (map ast-identifer-symbol param-list) body env))
 
@@ -48,22 +50,22 @@
                    name-param-exp-list)
                   env)))
 
+(define (value-of-operand param env)
+  (match param
+    [(ast-identifer id) (newref (deref (apply-env env id)))]
+    [_ (newref (trunk param env))]))
+
 
 (define (value-of-proc-call proc param-list env)
   (let ([proc-value (value-of proc env)]
-        [param-ref-list
-         (map (lambda (p)
-                (match p
-                  [(ast-identifer id) (apply-env env id)]
-                  [_ (newref (value-of p env))]))
-              param-list)])
+        [param-bind (map (lambda (oprand) (value-of-operand oprand env)) param-list)])
     (match proc-value
       [(procedure p-param-list exp p-env)
        (value-of
         exp
         (foldl
          (lambda (p-param ref env) (extend-env p-param ref env))
-         p-env p-param-list param-ref-list))])))
+         p-env p-param-list param-bind))])))
 
 (define (extend-env-id-exp-list id-exp-list env)
   (match id-exp-list
@@ -75,12 +77,22 @@
                  (newref (value-of expression env))
                  (extend-env-id-exp-list rest env))]))
 
+(define (value-of-variable identifier env)
+  (let* ([var-ref (apply-env env identifier)]
+         [retreived (deref var-ref)])
+    (match retreived
+      [(trunk expression env)
+       (let ([trunk-value (value-of expression env)])
+         (setref! var-ref trunk-value)
+         trunk-value)]
+      [_ retreived])))
+
 (define (value-of expr env)
   (match expr
     [(ast-number v) v]
     [(ast-boolean v) v]
     [(ast-emptylist ) (eopl-empty-list )]
-    [(ast-identifer id)  (deref (apply-env env id))]
+    [(ast-identifer id)  (value-of-variable id env)]
     [(ast-if cond-expr true-expr false-expr)
      (let [(cond-value (value-of cond-expr env))]
        (match cond-value
