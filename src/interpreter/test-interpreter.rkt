@@ -27,8 +27,6 @@ let n = 1 in
 ")
 
 
-(run test-diff-anwser)
-
 (define interpreter-tests
   (test-suite
    "tests for eopl interpreter"

@@ -68,15 +68,20 @@
          (lambda (p-param ref env) (extend-env p-param ref env))
          p-env p-param-list param-bind))])))
 
-(define (extend-env-id-exp-list id-exp-list env)
+(define (let-extend-env-id-exp-list id-exp-list env)
   (match id-exp-list
     [(list ) env]
     [(list (cons
             (ast-identifer id) expression)
            rest ...)
      (extend-env id
-                 (newref (value-of expression env))
-                 (extend-env-id-exp-list rest env))]))
+                 (newref (trunk  expression env))
+                 (let-extend-env-id-exp-list rest env))]))
+
+(define (value-of-let id-exp-list return-expression env)
+  (value-of
+   return-expression
+   (let-extend-env-id-exp-list id-exp-list env)))
 
 (define (value-of-variable identifier env)
   (let* ([var-ref (apply-env env identifier)]
@@ -99,7 +104,7 @@
        (match cond-value
          [#t (value-of true-expr env)]
          [#f (value-of false-expr env)]))]
-    [(ast-let id-exp-list value-return) (value-of value-return (extend-env-id-exp-list id-exp-list env))]
+    [(ast-let id-exp-list value-return) (value-of-let id-exp-list value-return env)]
     [(ast-assign (ast-identifer id) value-exp) (setref! (apply-env env id) (value-of value-exp env))]
     [(ast-operation name parameters) (value-of-op name (map (lambda (v) (value-of v env)) parameters))]
     [(ast-proc identifier-list expression) (value-of-proc identifier-list expression env)]
