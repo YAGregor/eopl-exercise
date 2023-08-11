@@ -53,6 +53,7 @@
 (define (value-of-operand param env)
   (match param
     [(ast-identifer id) (newref (deref (apply-env env id)))]
+    [(? ast-number? ast-proc?) (newref (value-of param env))]
     [_ (newref (trunk param env))]))
 
 

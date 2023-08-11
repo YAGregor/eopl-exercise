@@ -31,12 +31,14 @@
    ["proc" (token-PROC)]
    [#\= (token-EQ)]
    [(:or "zero?" "minus" "equal?" "greater?" "less?" #\+  #\- #\* #\/
-         "cons" "list" "car" "cdr" "not" "pair" "left" "right" "setleft" "setright"
+         "cons" "list" "car" "cdr" "not" "pair" "left" "right"
+         "setref"
+          "setleft" "setright"
          "newarray" "arrayref" "arrayset")
     (token-OPERATION (string->symbol lexeme))]
+   [(:: (:? (:or #\+ #\-)) (:+ numeric))(token-NUMBER (string->number lexeme))]
    [(:: (:* numeric) (:+ (:or alphabetic #\-)) (:* numeric) (:* symbolic))
     (token-IDENTIFIER (string->symbol lexeme))]
-   [(:: (:? (:or #\+ #\-)) (:+ numeric))(token-NUMBER (string->number lexeme))]
    [(eof) eof]))
 
 (define (lex-let str)
