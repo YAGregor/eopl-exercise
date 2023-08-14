@@ -5,7 +5,8 @@
          megaparsack/parser-tools/lex
          data/monad
          data/applicative
-         "built-in.rkt")
+         "built-in.rkt"
+         "ast-element.rkt")
 
 (define-tokens basic [IDENTIFIER NUMBER TRUE FALSE OPERATION])
 (define-empty-tokens puct
@@ -54,7 +55,7 @@
 
 (define identifier/p
   (do [id <- (token/p 'IDENTIFIER)]
-    (pure (ast-identifer id))))
+    (pure (ast-identifier id))))
 
 (define emptylist/p
   (do [_ <- (token/p 'EMPTYLIST)]
@@ -161,28 +162,7 @@
 
 (define (parse-let-syntax-tree src-text) (parse-result! (parse-tokens program/p (lex-let src-text))))
 
-(struct expression () #:transparent)
-
-(struct ast-number expression (n) #:transparent)
-(struct ast-boolean expression (b) #:transparent)
-(struct ast-identifer expression (symbol) #:transparent)
-
-(struct ast-if expression (cond true false) #:transparent)
-(struct ast-let expression (id-exp-list expression) #:transparent)
-(struct ast-operation expression (name parameters) #:transparent)
-(struct ast-emptylist expression () #:transparent)
-(struct ast-proc expression (identifier-list expression) #:transparent)
-(struct ast-proc-call expression (proc param-list) #:transparent)
-(struct ast-name-param-exp (name param exp) #:transparent)
-(struct ast-let-rec expression (name-param-exp-list body) #:transparent)
-(struct ast-begin expression (exp-list) #:transparent)
-(struct ast-assign expression (id expression) #:transparent)
-
 (define (parse source-code)
   (parse-let-syntax-tree source-code))
 
-(provide
- (struct-out ast-number) (struct-out ast-boolean) (struct-out ast-identifer) (struct-out ast-if) (struct-out ast-if) (struct-out ast-let) (struct-out ast-operation)
- (struct-out ast-emptylist) (struct-out ast-proc) (struct-out ast-proc-call) (struct-out ast-let-rec) (struct-out ast-begin) (struct-out ast-name-param-exp)
- (struct-out ast-assign) (struct-out expression)
- parse-let-syntax-tree parse)
+(provide parse)
