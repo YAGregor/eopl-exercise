@@ -51,7 +51,7 @@
 
 (define (op-list params)
   (match params
-    [null (exp-empty-list )]
+    [(list ) (exp-empty-list )]
     [(list head rest ...) (exp-list-pair head (op-list rest))]))
 
 (define (op-car params)

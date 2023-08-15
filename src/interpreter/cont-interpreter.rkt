@@ -1,13 +1,13 @@
 #lang typed/racket
 
-(require "ast-element.rkt" "typed-parser.rkt"
+(require "ast-element.rkt" "typed-parser.rkt" "typed-ops.rkt"
          (only-in "built-in.rkt" env extend-env extend-env-rec empty-env name-param-exp name-param-exp-name procedure ExpVal))
 
 (struct cont ())
 (struct end-cont cont ())
 (struct if-cont cont ([true-exp : expression] [false-exp : expression] [parent-cont : cont]))
 (struct let-cont cont ([identifiers : (Listof Symbol)] [exps : (Listof expression)] [body-exp : expression] [parent-cont : cont]))
-(struct op-cont cont ())
+(struct op-cont cont ([name : Symbol] [exist-exp-val : (Listof ExpVal)] [exps : (Listof expression)] [parent-cont : cont]))
 (struct proc-cont cont ())
 
 
@@ -35,7 +35,11 @@
        [(list first-exp rest-exp ...)
         (value-of/k first-exp
                     (extend-env env-applied (car ids) exp-val-applied)
-                    (let-cont (cdr ids) rest-exp body parent-cont))])]))
+                    (let-cont (cdr ids) rest-exp body parent-cont))])]
+    [(op-cont name exits-exp-val exps parent-cont)
+     (match exps
+       [(list ) (apply-cont parent-cont (value-of-op name (reverse (cons exp-val-applied exits-exp-val))) env-applied)]
+       [(list first-exp rest-exp ...) (value-of/k first-exp env-applied (op-cont name (cons exp-val-applied exits-exp-val) rest-exp parent-cont))])]))
 
 
 (: value-of/k (-> expression env cont ExpVal))
@@ -51,7 +55,11 @@
                     (let-cont
                      (map (lambda ([x : (Pairof ast-identifier expression)]) (ast-identifier-symbol (car x))) id-exp-list)
                      (map (lambda ([x : (Pairof ast-identifier expression)]) (cdr x)) rest-id-exp-list)
-                     body cont-context))])]))
+                     body cont-context))])]
+    [(ast-operation id params)
+     (match params
+       [(list ) (value-of-op id (list ))]
+       [(list first-param rest-params ...) (value-of/k first-param env-context (op-cont id (list ) rest-params cont-context))])]))
 
 (: run (-> String ExpVal))
 (define (run source-code) (value-of/k (parse source-code) (empty-env) (end-cont)))

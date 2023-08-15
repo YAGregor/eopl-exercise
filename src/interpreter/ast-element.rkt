@@ -8,7 +8,7 @@
 
 (struct ast-if expression ([cond : expression] [true : expression] [false : expression]) #:transparent)
 (struct ast-let expression ([id-exp-list : (Listof (Pairof ast-identifier expression))] [expression : expression]) #:transparent)
-(struct ast-operation expression ([name : ast-identifier] [parameters : (Listof expression)]) #:transparent)
+(struct ast-operation expression ([name : Symbol] [parameters : (Listof expression)]) #:transparent)
 (struct ast-emptylist expression () #:transparent)
 (struct ast-proc expression ([identifier-list : (Listof ast-identifier)] [expression : expression]) #:transparent)
 (struct ast-proc-call expression ([proc : ast-proc] [param-list : (Listof expression)]) #:transparent)
