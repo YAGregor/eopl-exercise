@@ -47,20 +47,20 @@
 
 (define (op-cons params)
   (match params
-    [(list  v1 v2) (eopl-pare v1 v2)]))
+    [(list  v1 v2) (exp-list-pair v1 v2)]))
 
 (define (op-list params)
   (match params
-    [null (eopl-empty-list )]
-    [(list head rest ...) (eopl-pare head (op-list rest))]))
+    [null (exp-empty-list )]
+    [(list head rest ...) (exp-list-pair head (op-list rest))]))
 
 (define (op-car params)
   (match params
-    [(list (eopl-pare head rest) ) head]))
+    [(list (exp-list-pair head rest) ) head]))
 
 (define (op-cdr params)
   (match params
-    [(list (eopl-pare head rest)) rest]))
+    [(list (exp-list-pair head rest)) rest]))
 
 (define (op-newref params)
   (match params
@@ -77,37 +77,37 @@
 
 (define (op-make-pair params)
   (match params
-    [(list left right) (a-pair (newref left) (newref right))]))
+    [(list left right) (exp-pair (newref left) (newref right))]))
 
 (define (op-left params)
   (match params
-    [(list (a-pair left _)) (deref left)]))
+    [(list (exp-pair left _)) (deref left)]))
 
 (define (op-right params)
   (match params
-    [(list (a-pair _ right)) (deref right)]))
+    [(list (exp-pair _ right)) (deref right)]))
 
 
 (define (op-set-left params)
   (match params
-    [(list (a-pair left _) value) (setref! left value)]))
+    [(list (exp-pair left _) value) (setref! left value)]))
 
 (define (op-set-right params)
   (match params
-    [(list (a-pair _ right) value) (setref! right value)]))
+    [(list (exp-pair _ right) value) (setref! right value)]))
 
 (define (op-newarray params)
-  (a-array (map newref params)))
+  (exp-array (map newref params)))
 
 (define (op-arrayref params)
   (match params
-    [(list (a-array ref-list) index) (deref (list-ref ref-list index))]))
+    [(list (exp-array ref-list) index) (deref (list-ref ref-list index))]))
 
 (define (op-arrayset params)
   (match params
     [(list array index value)
      (begin
-       (set-a-array-refs! array (list-set (a-array-refs array) index (newref value)))
+       (set-exp-array-refs! array (list-set (exp-array-refs array) index (newref value)))
        array)]))
 
 (define (value-of-op op-name params)

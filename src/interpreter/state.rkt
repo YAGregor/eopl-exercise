@@ -1,27 +1,31 @@
-#lang racket
+#lang typed/racket
+(require (only-in "built-in.rkt" ExpVal ref))
 
-(define the-store null)
+(define #{the-store : (Listof ExpVal)} null)
 
-(struct ref (n))
-
+(: initialize-the-store! (-> Void))
 (define (initialize-the-store!) (set! the-store null))
 
+(: get-store (-> (Listof ExpVal)))
 (define (get-store ) the-store)
 
+(: newref (-> ExpVal ref))
 (define (newref value)
   (let ([ref-no (length the-store)])
     (set! the-store (append the-store (list value)))
     (ref ref-no)))
 
+(: deref (-> ref ExpVal))
 (define (deref r)
   (match r
     [(ref n) (list-ref the-store n)]))
 
+(: setref! (-> ref ExpVal Void))
 (define (setref! r v)
   (match r
     [(ref r-n)
-     (letrec ([set-ref-inner
-               (lambda (n store)
+     (letrec ([#{set-ref-inner : (-> Number (Listof ExpVal) (Listof ExpVal))}
+               (lambda ([n : Number] [store : (Listof ExpVal)])
                  (match store
                    [(list curr rest ...)
                     (cond
@@ -29,4 +33,4 @@
                       [else (cons curr (set-ref-inner (- n 1) rest))])]))])
        (set! the-store (set-ref-inner r-n the-store)))]))
 
-(provide (struct-out ref) initialize-the-store! get-store newref deref setref!)
+(provide initialize-the-store! get-store newref deref setref!)

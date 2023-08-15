@@ -5,7 +5,6 @@
          megaparsack/parser-tools/lex
          data/monad
          data/applicative
-         "built-in.rkt"
          "ast-element.rkt")
 
 (define-tokens basic [IDENTIFIER NUMBER TRUE FALSE OPERATION])

@@ -1,5 +1,5 @@
 #lang racket
-(require "continuation-interpreter.rkt" rackunit rackunit/text-ui)
+(require "cont-interpreter.rkt" rackunit rackunit/text-ui)
 
 (define basic-let "let x = 1 in x")
 (define multi-branch-let "let x = 1 y = 2 in x")

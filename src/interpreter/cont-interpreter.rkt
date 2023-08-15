@@ -1,19 +1,15 @@
 #lang typed/racket
 
-(require "ast-element.rkt" "typed-parser.rkt")
+(require "ast-element.rkt" "typed-parser.rkt"
+         (only-in "built-in.rkt" env extend-env extend-env-rec empty-env name-param-exp name-param-exp-name procedure ExpVal))
 
+(struct cont ())
+(struct end-cont cont ())
+(struct if-cont cont ([true-exp : expression] [false-exp : expression] [parent-env : env] [parent-cont : cont]))
+(struct let-cont cont ([identifiers : (Listof Symbol)] [exps : (Listof expression)] [body-exp : expression] [parent-env : env] [parent-cont : cont]))
+(struct op-cont cont ())
+(struct proc-cont cont ())
 
-(struct procedure ([param-list : (Listof Symbol)] [body : expression] [bind-env : env]))
-(define-type ExpVal (U String Number Boolean procedure procedure))
-
-(struct env ())
-(struct empty-env env () #:transparent)
-(struct extend-env env ( [parent : env] [id : Symbol] [value : ExpVal]) #:transparent)
-
-(struct name-param-exp ([name : Symbol] [param : Symbol] [bind-exp : expression]))
-
-(struct extend-env-rec env
-  ([parent : env] [name-param-exp-list : (Listof name-param-exp)]) #:transparent)
 
 (: apply-env (-> env Symbol ExpVal))
 (define (apply-env applied-env id)
@@ -25,15 +21,6 @@
      (match (findf (compose (curry equal? id) name-param-exp-name) name-param-exp-list)
        [(name-param-exp n p exp) (procedure (list p) exp applied-env)]
        [_ (apply-env parent id)])]))
-
-(struct cont ())
-(struct end-cont cont ())
-(struct if-cont cont ([true-exp : expression] [false-exp : expression] [parent-env : env] [parent-cont : cont]))
-(struct let-cont cont ([identifiers : (Listof Symbol)] [exps : (Listof expression)] [body-exp : expression] [parent-env : env] [parent-cont : cont]))
-(struct op-cont cont ())
-(struct proc-cont cont ())
-
-(struct let-binding ([id : Symbol] [bind-exp : expression]))
 
 (: apply-cont (-> cont ExpVal ExpVal))
 (define (apply-cont cont-applied exp-val-applied)
