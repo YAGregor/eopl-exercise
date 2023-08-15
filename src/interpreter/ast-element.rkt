@@ -11,7 +11,7 @@
 (struct ast-operation expression ([name : Symbol] [parameters : (Listof expression)]) #:transparent)
 (struct ast-emptylist expression () #:transparent)
 (struct ast-proc expression ([identifier-list : (Listof ast-identifier)] [expression : expression]) #:transparent)
-(struct ast-proc-call expression ([proc : ast-proc] [param-list : (Listof expression)]) #:transparent)
+(struct ast-proc-call expression ([proc : expression] [param-list : (Listof expression)]) #:transparent)
 (struct ast-name-param-exp ([name : ast-identifier] [param : expression] [exp : expression]) #:transparent)
 (struct ast-let-rec expression ([name-param-exp-list : (Listof ast-name-param-exp)] [body : expression]) #:transparent)
 (struct ast-begin expression ([exp-list : (Listof expression)]) #:transparent)
