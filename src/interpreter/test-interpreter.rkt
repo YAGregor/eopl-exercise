@@ -14,9 +14,12 @@
 (define test-begin
   "begin 1; 2; 3 end")
 
+(define test-set "let x = 1 in begin set x = 2; x end")
+
 (define interpreter-tests
   (test-suite
    "tests for eopl interpreter"
+   (test-case "set" (check-equal? 2 (run test-set)))
    (test-case "begin" (check-equal? 3 (run test-begin)))
    (test-case
     "proc"

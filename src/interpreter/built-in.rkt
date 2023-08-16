@@ -16,7 +16,7 @@
 
 (struct env ())
 (struct empty-env env () #:transparent)
-(struct extend-env env ([parent : env] [id : Symbol] [value : ExpVal]) #:transparent)
+(struct extend-env env ([parent : env] [id : Symbol] [value : ref]) #:transparent)
 (struct extend-env-rec env
   ([parent : env] [name-param-exp-list : (Listof name-param-exp)]) #:transparent)
 (struct name-param-exp ([name : Symbol] [param : Symbol] [bind-exp : expression]))

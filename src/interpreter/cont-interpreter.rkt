@@ -1,7 +1,7 @@
 #lang typed/racket
 
-(require "ast-element.rkt" "typed-parser.rkt" "typed-ops.rkt"
-         (only-in "built-in.rkt" env extend-env extend-env-rec empty-env name-param-exp name-param-exp-name procedure procedure? ExpVal))
+(require "ast-element.rkt" "typed-parser.rkt" "typed-ops.rkt" "state.rkt"
+         (only-in "built-in.rkt" env extend-env extend-env-rec empty-env name-param-exp name-param-exp-name procedure procedure? ExpVal ref))
 
 (struct cont ())
 (struct end-cont cont ())
@@ -11,9 +11,9 @@
 (struct rator-cont cont ([rands : (Listof expression)] [parent-cont : cont]))
 (struct rand-cont cont ([proc : procedure] [param-exp-vals : (Listof ExpVal)] [param-exps : (Listof expression)] [parent-cont : cont]))
 (struct begin-cont cont ([exps : (Listof expression)] [parent-cont : cont]))
-(struct set-cont cont ([id : Symbol] [parent-cont : cont]))
+(struct assign-cont cont ([id : Symbol] [parent-cont : cont]))
 
-(: apply-env (-> env Symbol ExpVal))
+(: apply-env (-> env Symbol ref))
 (define (apply-env applied-env id)
   (match applied-env
     [(extend-env parent extend-id value)
@@ -21,7 +21,7 @@
            [else (apply-env parent id)])]
     [(extend-env-rec parent name-param-exp-list)
      (match (findf (compose (curry equal? id) name-param-exp-name) name-param-exp-list)
-       [(name-param-exp n p exp) (procedure (list p) exp applied-env)]
+       [(name-param-exp n p exp) (newref (procedure (list p) exp applied-env))]
        [_ (apply-env parent id)])]))
 
 (: apply-cont (-> cont ExpVal env ExpVal))
@@ -33,10 +33,10 @@
            [else (value-of/k false-exp env-applied parent-cont)])]
     [(let-cont ids exps body parent-cont)
      (match exps
-       [(list ) (value-of/k body (extend-env env-applied (car ids) exp-val-applied) parent-cont) ]
+       [(list ) (value-of/k body (extend-env env-applied (car ids) (newref exp-val-applied)) parent-cont) ]
        [(list first-exp rest-exp ...)
         (value-of/k first-exp
-                    (extend-env env-applied (car ids) exp-val-applied)
+                    (extend-env env-applied (car ids) (newref exp-val-applied))
                     (let-cont (cdr ids) rest-exp body parent-cont))])]
     [(op-cont name exits-exp-val exps parent-cont)
      (match exps
@@ -58,8 +58,10 @@
      (match exps
        [(list ) (apply-cont parent-cont exp-val-applied env-applied)]
        [(list first-exp rest-exps ...) (value-of/k first-exp env-applied (begin-cont rest-exps parent-cont))])]
-    [(set-cont id parent-cont)
-     (apply-cont parent-cont 1 env-applied)]))
+    [(assign-cont id parent-cont)
+     (begin
+       (setref! (apply-env env-applied id) exp-val-applied)
+       (apply-cont parent-cont 1 env-applied))]))
 
 (: value-of-proc-call/k (-> procedure (Listof ExpVal) cont ExpVal))
 (define (value-of-proc-call/k proc param-exp-vals cont-context)
@@ -67,14 +69,14 @@
     [(procedure param-exps body proc-env)
      (value-of/k
       body
-      (foldl (lambda ([id : Symbol] [exp-val : ExpVal] [pre-env : env] ) (extend-env pre-env id exp-val)) proc-env param-exps param-exp-vals)
+      (foldl (lambda ([id : Symbol] [exp-val : ExpVal] [pre-env : env] ) (extend-env pre-env id (newref exp-val))) proc-env param-exps param-exp-vals)
       cont-context)]))
 
 (: value-of/k (-> expression env cont ExpVal))
 (define (value-of/k expression-applied env-context cont-context)
   (match expression-applied
     [(ast-number n) (apply-cont cont-context n env-context)]
-    [(ast-identifier id) (apply-cont cont-context (apply-env env-context id) env-context)]
+    [(ast-identifier id) (apply-cont cont-context (deref (apply-env env-context id)) env-context)]
     [(ast-proc param-exps body)
      (apply-cont
       cont-context
@@ -110,7 +112,8 @@
     [(ast-begin exps)
      (match exps
        [(list first-exp rest-exp ...)
-        (value-of/k first-exp env-context (begin-cont rest-exp cont-context))])]))
+        (value-of/k first-exp env-context (begin-cont rest-exp cont-context))])]
+    [(ast-assign (ast-identifier id) assign-exp) (value-of/k assign-exp env-context (assign-cont id cont-context))]))
 
 (: run (-> String ExpVal))
 (define (run source-code) (value-of/k (parse source-code) (empty-env) (end-cont)))
