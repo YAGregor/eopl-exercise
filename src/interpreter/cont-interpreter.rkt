@@ -67,6 +67,11 @@
   (match expression-applied
     [(ast-number n) (apply-cont cont-context n env-context)]
     [(ast-identifier id) (apply-cont cont-context (apply-env env-context id) env-context)]
+    [(ast-proc param-exps body)
+     (apply-cont
+      cont-context
+      (procedure (map ast-identifier-symbol param-exps) body env-context)
+      env-context)]
     [(ast-if cond-exp true-exp false-exp) (value-of/k cond-exp env-context (if-cont true-exp false-exp cont-context))]
     [(ast-let id-exp-list body)
      (match id-exp-list
