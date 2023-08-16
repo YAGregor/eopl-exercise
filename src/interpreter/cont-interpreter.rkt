@@ -1,7 +1,7 @@
 #lang typed/racket
 
 (require "ast-element.rkt" "typed-parser.rkt" "typed-ops.rkt"
-         (only-in "built-in.rkt" env extend-env extend-env-rec empty-env name-param-exp name-param-exp-name procedure ExpVal))
+         (only-in "built-in.rkt" env extend-env extend-env-rec empty-env name-param-exp name-param-exp-name procedure procedure? ExpVal))
 
 (struct cont ())
 (struct end-cont cont ())
@@ -46,18 +46,21 @@
         (match rands
           [(list ) (value-of/k body proc-env parent-cont)]
           [(list first-exp rest-exp ...) (value-of/k first-exp env-applied (rand-cont exp-val-applied (list ) rest-exp parent-cont))])])]
-    [(rand-cont (procedure param-list body procedure-env) param-exp-vals param-exps parent-cont)
+    [(rand-cont proc param-exp-vals param-exps parent-cont)
      (match param-exps
        [(list )
-        (value-of/k
-         body
-         (foldl (lambda ([id : Symbol] [exp-val : ExpVal] [pre-env : env] ) (extend-env pre-env id exp-val))
-                procedure-env
-                param-list (reverse (cons exp-val-applied param-exps)))
-         parent-cont)]
-       [(list first-param rest-param ...)
-        (value-of/k first-param env-applied (rand-cont (procedure param-list body procedure-env) (cons exp-val-applied param-exp-vals) rest-param parent-cont))])]))
+        (value-of-proc-call/k proc (reverse (cons exp-val-applied param-exp-vals)) parent-cont)]
+       [(list first-param rest-params ...)
+        (value-of/k first-param env-applied (rand-cont proc (cons exp-val-applied param-exp-vals) rest-params parent-cont))])]))
 
+(: value-of-proc-call/k (-> procedure (Listof ExpVal) cont ExpVal))
+(define (value-of-proc-call/k proc param-exp-vals cont-context)
+  (match proc
+    [(procedure param-exps body proc-env)
+     (value-of/k
+      body
+      (foldl (lambda ([id : Symbol] [exp-val : ExpVal] [pre-env : env] ) (extend-env pre-env id exp-val)) proc-env param-exps param-exp-vals)
+      cont-context)]))
 
 (: value-of/k (-> expression env cont ExpVal))
 (define (value-of/k expression-applied env-context cont-context)
