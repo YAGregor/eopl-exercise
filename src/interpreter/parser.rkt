@@ -93,7 +93,7 @@
 
 (define let-rec/p
   (do (token/p 'LET-REC)
-    [name-param-exp-list <- (many/p let-rec-name-param-exp/p)]
+    [name-param-exp-list <- (many+/p let-rec-name-param-exp/p)]
     [token/p 'IN]
     [body <- expression/p]
     (pure (ast-let-rec name-param-exp-list body))))

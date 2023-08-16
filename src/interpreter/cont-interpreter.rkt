@@ -10,6 +10,8 @@
 (struct op-cont cont ([name : Symbol] [exist-exp-val : (Listof ExpVal)] [exps : (Listof expression)] [parent-cont : cont]))
 (struct rator-cont cont ([rands : (Listof expression)] [parent-cont : cont]))
 (struct rand-cont cont ([proc : procedure] [param-exp-vals : (Listof ExpVal)] [param-exps : (Listof expression)] [parent-cont : cont]))
+(struct begin-cont cont ([exps : (Listof expression)] [parent-cont : cont]))
+(struct set-cont cont ([id : Symbol] [parent-cont : cont]))
 
 (: apply-env (-> env Symbol ExpVal))
 (define (apply-env applied-env id)
@@ -51,7 +53,13 @@
        [(list )
         (value-of-proc-call/k proc (reverse (cons exp-val-applied param-exp-vals)) parent-cont)]
        [(list first-param rest-params ...)
-        (value-of/k first-param env-applied (rand-cont proc (cons exp-val-applied param-exp-vals) rest-params parent-cont))])]))
+        (value-of/k first-param env-applied (rand-cont proc (cons exp-val-applied param-exp-vals) rest-params parent-cont))])]
+    [(begin-cont exps parent-cont)
+     (match exps
+       [(list ) (apply-cont parent-cont exp-val-applied env-applied)]
+       [(list first-exp rest-exps ...) (value-of/k first-exp env-applied (begin-cont rest-exps parent-cont))])]
+    [(set-cont id parent-cont)
+     (apply-cont parent-cont 1 env-applied)]))
 
 (: value-of-proc-call/k (-> procedure (Listof ExpVal) cont ExpVal))
 (define (value-of-proc-call/k proc param-exp-vals cont-context)
@@ -98,7 +106,11 @@
     [(ast-operation id params)
      (match params
        [(list ) (value-of-op id (list ))]
-       [(list first-param rest-params ...) (value-of/k first-param env-context (op-cont id (list ) rest-params cont-context))])]))
+       [(list first-param rest-params ...) (value-of/k first-param env-context (op-cont id (list ) rest-params cont-context))])]
+    [(ast-begin exps)
+     (match exps
+       [(list first-exp rest-exp ...)
+        (value-of/k first-exp env-context (begin-cont rest-exp cont-context))])]))
 
 (: run (-> String ExpVal))
 (define (run source-code) (value-of/k (parse source-code) (empty-env) (end-cont)))
