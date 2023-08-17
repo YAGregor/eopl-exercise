@@ -1,7 +1,7 @@
 #lang typed/racket
 
 (require "ast-element.rkt" "typed-parser.rkt" "typed-ops.rkt" "state.rkt"
-         (only-in "built-in.rkt" env extend-env extend-env-rec empty-env name-param-exp name-param-exp-name procedure procedure? ExpVal ref))
+         (only-in "built-in.rkt" env extend-env extend-env-rec empty-env name-param-exp name-param-exp-name exp-procedure exp-procedure? ExpVal ref))
 
 (struct cont ())
 (struct end-cont cont ())
@@ -9,7 +9,7 @@
 (struct let-cont cont ([identifiers : (Listof Symbol)] [exps : (Listof expression)] [body-exp : expression] [parent-cont : cont]))
 (struct op-cont cont ([name : Symbol] [exist-exp-val : (Listof ExpVal)] [exps : (Listof expression)] [parent-cont : cont]))
 (struct rator-cont cont ([rands : (Listof expression)] [parent-cont : cont]))
-(struct rand-cont cont ([proc : procedure] [param-exp-vals : (Listof ExpVal)] [param-exps : (Listof expression)] [parent-cont : cont]))
+(struct rand-cont cont ([proc : exp-procedure] [param-exp-vals : (Listof ExpVal)] [param-exps : (Listof expression)] [parent-cont : cont]))
 (struct begin-cont cont ([exps : (Listof expression)] [parent-cont : cont]))
 (struct assign-cont cont ([id : Symbol] [parent-cont : cont]))
 
@@ -21,10 +21,12 @@
            [else (apply-env parent id)])]
     [(extend-env-rec parent name-param-exp-list)
      (match (findf (compose (curry equal? id) name-param-exp-name) name-param-exp-list)
-       [(name-param-exp n p exp) (newref (procedure (list p) exp applied-env))]
+       [(name-param-exp n p exp) (newref (exp-procedure (list p) exp applied-env))]
        [_ (apply-env parent id)])]))
 
-(: apply-cont (-> cont ExpVal env ExpVal))
+(define-type Bounce (U ExpVal (-> Bounce)))
+
+(: apply-cont (-> cont ExpVal env Bounce))
 (define (apply-cont cont-applied exp-val-applied env-applied)
   (match cont-applied
     [(? end-cont?) (begin (printf "end of computation ~s \n" exp-val-applied) exp-val-applied)]
@@ -44,7 +46,7 @@
        [(list first-exp rest-exp ...) (value-of/k first-exp env-applied (op-cont name (cons exp-val-applied exits-exp-val) rest-exp parent-cont))])]
     [(rator-cont rands parent-cont)
      (match exp-val-applied
-       [(procedure param-list body proc-env)
+       [(exp-procedure param-list body proc-env)
         (match rands
           [(list ) (value-of/k body proc-env parent-cont)]
           [(list first-exp rest-exp ...) (value-of/k first-exp env-applied (rand-cont exp-val-applied (list ) rest-exp parent-cont))])])]
@@ -63,16 +65,16 @@
        (setref! (apply-env env-applied id) exp-val-applied)
        (apply-cont parent-cont 1 env-applied))]))
 
-(: value-of-proc-call/k (-> procedure (Listof ExpVal) cont ExpVal))
+(: value-of-proc-call/k (-> exp-procedure (Listof ExpVal) cont Bounce))
 (define (value-of-proc-call/k proc param-exp-vals cont-context)
   (match proc
-    [(procedure param-exps body proc-env)
+    [(exp-procedure param-exps body proc-env)
      (value-of/k
       body
       (foldl (lambda ([id : Symbol] [exp-val : ExpVal] [pre-env : env] ) (extend-env pre-env id (newref exp-val))) proc-env param-exps param-exp-vals)
       cont-context)]))
 
-(: value-of/k (-> expression env cont ExpVal))
+(: value-of/k (-> expression env cont Bounce))
 (define (value-of/k expression-applied env-context cont-context)
   (match expression-applied
     [(ast-number n) (apply-cont cont-context n env-context)]
@@ -80,7 +82,7 @@
     [(ast-proc param-exps body)
      (apply-cont
       cont-context
-      (procedure (map ast-identifier-symbol param-exps) body env-context)
+      (exp-procedure (map ast-identifier-symbol param-exps) body env-context)
       env-context)]
     [(ast-if cond-exp true-exp false-exp) (value-of/k cond-exp env-context (if-cont true-exp false-exp cont-context))]
     [(ast-let id-exp-list body)
@@ -115,7 +117,13 @@
         (value-of/k first-exp env-context (begin-cont rest-exp cont-context))])]
     [(ast-assign (ast-identifier id) assign-exp) (value-of/k assign-exp env-context (assign-cont id cont-context))]))
 
+(: trampoline (-> Bounce ExpVal))
+(define (trampoline bounce)
+  (cond
+    [(procedure? bounce) (trampoline bounce)]
+    [else bounce]))
+
 (: run (-> String ExpVal))
-(define (run source-code) (value-of/k (parse source-code) (empty-env) (end-cont)))
+(define (run source-code) (trampoline (value-of/k (parse source-code) (empty-env) (end-cont))))
 
 (provide run)

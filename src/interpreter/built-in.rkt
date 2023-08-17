@@ -11,8 +11,8 @@
 (struct exp-pair ([left : ExpVal] [right : ExpVal]))
 (struct exp-array ([refs : ref]) #:mutable)
 
-(struct procedure ([param-list : (Listof Symbol)] [body : expression] [bind-env : env]))
-(define-type ExpVal (U String Number Boolean procedure exp-list exp-pair exp-array ref))
+(struct exp-procedure ([param-list : (Listof Symbol)] [body : expression] [bind-env : env]))
+(define-type ExpVal (U String Number Boolean exp-procedure exp-list exp-pair exp-array ref))
 
 (struct env ())
 (struct empty-env env () #:transparent)
