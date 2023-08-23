@@ -26,8 +26,17 @@
 
 (define-type Bounce (U ExpVal (-> Bounce)))
 
-(: apply-cont (-> cont ExpVal env Bounce))
-(define (apply-cont cont-applied exp-val-applied env-applied)
+(: register-val (Union Void Bounce))
+(define register-val (void))
+
+(: register-env (Union Void env))
+(define register-env (void))
+
+(: register-cont (Union Void cont))
+(define register-cont (void))
+
+(: apply-cont (-> Bounce))
+(define (apply-cont )
   (match cont-applied
     [(? end-cont?) (begin (printf "end of computation ~s \n" exp-val-applied) exp-val-applied)]
     [(if-cont true-exp false-exp parent-cont)
@@ -65,8 +74,8 @@
        (setref! (apply-env env-applied id) exp-val-applied)
        (apply-cont parent-cont 1 env-applied))]))
 
-(: value-of-proc-call/k (-> exp-procedure (Listof ExpVal) cont Bounce))
-(define (value-of-proc-call/k proc param-exp-vals cont-context)
+(: value-of-proc-call/k (-> exp-procedure (Listof ExpVal) Bounce))
+(define (value-of-proc-call/k proc param-exp-vals)
   (match proc
     [(exp-procedure param-exps body proc-env)
      (value-of/k
@@ -74,8 +83,8 @@
       (foldl (lambda ([id : Symbol] [exp-val : ExpVal] [pre-env : env] ) (extend-env pre-env id (newref exp-val))) proc-env param-exps param-exp-vals)
       cont-context)]))
 
-(: value-of/k (-> expression env cont Bounce))
-(define (value-of/k expression-applied env-context cont-context)
+(: value-of/k (-> expression Bounce))
+(define (value-of/k expression-applied cont-context)
   (match expression-applied
     [(ast-number n) (apply-cont cont-context n env-context)]
     [(ast-identifier id) (apply-cont cont-context (deref (apply-env env-context id)) env-context)]
