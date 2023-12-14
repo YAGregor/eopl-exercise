@@ -119,9 +119,9 @@
 
 (: trampoline (-> Bounce ExpVal))
 (define (trampoline bounce)
-  (cond
-    [(procedure? bounce) (trampoline bounce)]
-    [else bounce]))
+  (match bounce
+    [(? procedure?) (trampoline ((cast bounce (-> ExpVal))))]
+    [_ (cast bounce ExpVal)]))
 
 (: run (-> String ExpVal))
 (define (run source-code) (trampoline (value-of/k (parse source-code) (empty-env) (end-cont))))
