@@ -48,7 +48,7 @@
      (match exp-val-applied
        [(exp-procedure param-list body proc-env)
         (match rands
-          [(list ) (value-of/k body proc-env parent-cont)]
+          [(list ) (value-of-proc-call/k exp-val-applied (list ) parent-cont)]
           [(list first-exp rest-exp ...) (value-of/k first-exp env-applied (rand-cont exp-val-applied (list ) rest-exp parent-cont))])])]
     [(rand-cont proc param-exp-vals param-exps parent-cont)
      (match param-exps
