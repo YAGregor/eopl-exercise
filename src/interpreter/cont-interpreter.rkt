@@ -141,58 +141,92 @@
 (define (value-of-proc-call/k)
   (match proc
     [(exp-procedure param-exps body proc-env)
+     (value-of/k cond-exp env-context (if-cont true-exp false-exp cont-context))
      (begin
        (set! register-epxression body)
        (set! register-env
              (foldl (lambda ([id : Symbol] [exp-val : ExpVal] [pre-env : env] ) (extend-env pre-env id (newref exp-val))) proc-env param-exps register-params))
        (value-of/k))]))
 
-(: value-of/k (-> Expression ExpVal))
-(define (value-of/k expression-applied cont-context)
+(: value-of/k (->  ExpVal))
+(define (value-of/k)
   (match expression-applied
-    [(ast-number n) (apply-cont cont-context n env-context)]
-    [(ast-identifier id) (apply-cont cont-context (deref (apply-env env-context id)) env-context)]
-    [(ast-proc param-exps body)
-     (apply-cont
-      cont-context
-      (exp-procedure (map ast-identifier-symbol param-exps) body env-context)
-      env-context)]
-    [(ast-if cond-exp true-exp false-exp) (value-of/k cond-exp env-context (if-cont true-exp false-exp cont-context))]
+    [(ast-number n)
+     (begin
+       (set! register-val n)
+       (apply-cont))]
+    [(ast-identifier id)
+     (begin
+       (set! register-cont (deref (apply-env register-env id)))
+       (apply-cont))]
+    [(ast-proc param-exps body )
+     (begin
+       (set! register-val (exp-procedure (map ast-identifier-symbol param-exps) body register-env))
+       (apply-cont))]
+    [(ast-if cond-exp true-exp false-exp)
+     (begin
+       (set! register-epxression cond-exp)
+       (set! register-cont (if-cont true-exp false-exp register-cont))
+       (value-of/k))]
     [(ast-let id-exp-list body)
      (match id-exp-list
        [(list (cons (ast-identifier first-id) first-exp) rest-id-exp-list ...)
-        (value-of/k first-exp env-context
-                    (let-cont
-                     (map (lambda ([x : (Pairof ast-identifier expression)]) (ast-identifier-symbol (car x))) id-exp-list)
-                     (map (lambda ([x : (Pairof ast-identifier expression)]) (cdr x)) rest-id-exp-list)
-                     body cont-context))])]
+        (begin
+          (set! register-epxression first-exp)
+          (set! register-cont (let-cont
+                               (map (lambda ([x : (Pairof ast-identifier expression)]) (ast-identifier-symbol (car x))) id-exp-list)
+                               (map (lambda ([x : (Pairof ast-identifier expression)]) (cdr x)) rest-id-exp-list)
+                               body register-cont))
+          (value-of/k))])
+     ]
     [(ast-let-rec name-param-exp-list body)
-     (value-of/k body
-                 (extend-env-rec
-                  env-context
-                  (map (lambda (x)
-                         (match x
-                           [(ast-name-param-exp
-                             (ast-identifier n)
-                             (ast-identifier p)
-                             e)
-                            (name-param-exp n p e)]))
-                       name-param-exp-list))
-                 cont-context)]
-    [(ast-proc-call proc-exp param-exp-list) (value-of/k proc-exp env-context (rator-cont param-exp-list cont-context))]
+     (begin
+       (set! register-epxression body)
+       (set! register-env
+             (extend-env-rec
+              register-env
+              (map (lambda (x)
+                     (match x
+                       [(ast-name-param-exp
+                         (ast-identifier n)
+                         (ast-identifier p)
+                         e)
+                        (name-param-exp n p e)]))
+                   name-param-exp-list)))
+       (value-of/k))]
+    [(ast-proc-call proc-exp param-exp-list)
+     (begin
+       (set! register-epxression proc-exp)
+       (set! register-cont (rator-cont param-exp-list cont-context))
+       (value-of/k))]
     [(ast-operation id params)
      (match params
-       [(list ) (value-of-op id (list ))]
-       [(list first-param rest-params ...) (value-of/k first-param env-context (op-cont id (list ) rest-params cont-context))])]
+       [(list )
+        (value-of-op id (list ))]
+       [(list first-param rest-params ...)
+        (begin
+          (set! register-epxression first-param)
+          (set! register-cont  (op-cont id (list ) rest-params cont-context))
+          (value-of/k))])]
     [(ast-begin exps)
      (match exps
        [(list first-exp rest-exp ...)
-        (value-of/k first-exp env-context (begin-cont rest-exp cont-context))])]
-    [(ast-assign (ast-identifier id) assign-exp) (value-of/k assign-exp env-context (assign-cont id cont-context))]))
+        (begin
+          (set! register-epxression first-exp)
+          (set! register-cont (begin-cont rest-exp cont-context))
+          (value-of/k))])]
+    [(ast-assign (ast-identifier id) assign-exp)
+     (begin
+     (set! register-epxression assign-exp)
+     (set! register-cont  (assign-cont id cont-context))
+     (value-of/k))]))
 
 
 
 (: run (-> String ExpVal))
-(define (run source-code) (trampoline (value-of/k (parse source-code) (empty-env) (end-cont))))
+(define (run source-code)
+  (init-register )
+  (set! register-epxression (parse source-code))
+  (value-of/k))
 
 (provide run)
