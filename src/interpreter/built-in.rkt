@@ -1,5 +1,5 @@
 #lang typed/racket
-(require (only-in "ast-element.rkt" expression))
+(require (only-in "ast-element.rkt" Expression))
 
 
 (struct ref ([n : Integer]))
@@ -11,14 +11,15 @@
 (struct exp-pair ([left : ExpVal] [right : ExpVal]))
 (struct exp-array ([refs : ref]) #:mutable)
 
-(struct exp-procedure ([param-list : (Listof Symbol)] [body : expression] [bind-env : env]))
+(struct exp-procedure ([param-list : (Listof Symbol)] [body : Expression] [bind-env : Env]))
 (define-type ExpVal (U String Number Boolean exp-procedure exp-list exp-pair exp-array ref))
 
-(struct env ())
-(struct empty-env env () #:transparent)
-(struct extend-env env ([parent : env] [id : Symbol] [value : ref]) #:transparent)
-(struct extend-env-rec env
-  ([parent : env] [name-param-exp-list : (Listof name-param-exp)]) #:transparent)
-(struct name-param-exp ([name : Symbol] [param : Symbol] [bind-exp : expression]))
+(struct empty-env ())
+(struct extend-env ([parent : Env] [id : Symbol] [value : ref]) #:transparent)
+(struct extend-env-rec
+  ([parent : Env] [name-param-exp-list : (Listof name-param-exp)]) #:transparent)
+(struct name-param-exp ([name : Symbol] [param : Symbol] [bind-exp : Expression]))
+
+(define-type Env (U empty-env extend-env extend-env-rec))
 
 (provide (all-defined-out))
