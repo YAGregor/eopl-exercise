@@ -9,7 +9,11 @@
 
 (define-tokens basic [IDENTIFIER NUMBER TRUE FALSE OPERATION STRING])
 (define-empty-tokens puct
-  [LPAREN RPAREN COMMA EQ IN LET THEN ELSE IF EMPTYLIST PROC LET-REC SEMICOLON BEGIN END SET])
+  [LPAREN RPAREN COMMA
+          EQ IN LET THEN ELSE IF
+          EMPTYLIST PROC LET-REC
+          SEMICOLON BEGIN END SET
+          TRY RAISE CATCH])
 
 (define (string-token-content s)
   (let ([s-len (string-length s)])
@@ -33,6 +37,9 @@
    ["else" (token-ELSE)]
    ["emptylist" (token-EMPTYLIST)]
    ["proc" (token-PROC)]
+   ["try" (token-TRY)]
+   ["raise" (token-RAISE)]
+   ["catch" (token-CATCH)]
    [#\= (token-EQ)]
    [(:or "zero?" "minus" "equal?" "greater?" "less?" #\+  #\- #\* #\/
          "cons" "list" "car" "cdr" "not" "pair" "left" "right"
@@ -56,7 +63,7 @@
 
 (define string/p
   (do [s <- (token/p 'STRING)]
-          (pure (ast-string s))))
+    (pure (ast-string s))))
 
 (define number/p
   (do [n <- (token/p 'NUMBER)]
@@ -159,9 +166,22 @@
     [expression <- expression/p]
     (pure (ast-assign id expression))))
 
+(define try/p
+  (do (token/p 'TRY)
+    [try-branch <- expression/p]
+    (token/p 'CATCH)
+    [catch-id <- identifier/p]
+    [catch-expression <- expression/p]
+    (pure (ast-try try-branch catch-id catch-expression))))
+
+(define raise/p
+  (do (token/p 'RAISE)
+    [expression <- expression/p]
+    (pure (ast-raise expression))))
+
 
 (define expression/p (or/p number/p string/p identifier/p let/p let-rec/p operation/p emptylist/p
-                           proc/p proc-call/p if/p begin-exp/p assign/p))
+                           proc/p proc-call/p if/p begin-exp/p assign/p try/p raise/p))
 
 
 (define program/p
