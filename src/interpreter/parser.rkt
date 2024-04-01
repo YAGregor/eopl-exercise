@@ -7,9 +7,13 @@
          data/applicative
          "ast-element.rkt")
 
-(define-tokens basic [IDENTIFIER NUMBER TRUE FALSE OPERATION])
+(define-tokens basic [IDENTIFIER NUMBER TRUE FALSE OPERATION STRING])
 (define-empty-tokens puct
   [LPAREN RPAREN COMMA EQ IN LET THEN ELSE IF EMPTYLIST PROC LET-REC SEMICOLON BEGIN END SET])
+
+(define (string-token-content s)
+  (let ([s-len (string-length s)])
+    (substring s 1 (- s-len 1))))
 
 (define let-lexer
   (lexer-src-pos
@@ -33,12 +37,14 @@
    [(:or "zero?" "minus" "equal?" "greater?" "less?" #\+  #\- #\* #\/
          "cons" "list" "car" "cdr" "not" "pair" "left" "right"
          "setref"
-          "setleft" "setright"
+         "setleft" "setright"
          "newarray" "arrayref" "arrayset")
     (token-OPERATION (string->symbol lexeme))]
    [(:: (:? (:or #\+ #\-)) (:+ numeric))(token-NUMBER (string->number lexeme))]
    [(:: (:* numeric) (:+ (:or alphabetic #\-)) (:* numeric) (:* symbolic))
     (token-IDENTIFIER (string->symbol lexeme))]
+   [(:: #\" (:* (:or alphabetic numeric)) #\")
+    (token-STRING (string-token-content lexeme))]
    [(eof) eof]))
 
 (define (lex-let str)
@@ -47,6 +53,10 @@
     (cond [(void? (position-token-token v)) (loop (let-lexer in))]
           [(eof-object? (position-token-token v)) '()]
           [else (cons v (loop (let-lexer in)))])))
+
+(define string/p
+  (do [s <- (token/p 'STRING)]
+          (pure (ast-string s))))
 
 (define number/p
   (do [n <- (token/p 'NUMBER)]
@@ -150,7 +160,7 @@
     (pure (ast-assign id expression))))
 
 
-(define expression/p (or/p number/p identifier/p let/p let-rec/p operation/p emptylist/p
+(define expression/p (or/p number/p string/p identifier/p let/p let-rec/p operation/p emptylist/p
                            proc/p proc-call/p if/p begin-exp/p assign/p))
 
 

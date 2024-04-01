@@ -3,6 +3,7 @@
 (struct ast-number ([n : Number]) #:transparent)
 (struct ast-boolean ([b : Boolean]) #:transparent)
 (struct ast-identifier ([symbol : Symbol]) #:transparent)
+(struct ast-string ([s : String]) #:transparent)
 
 (struct ast-if ([cond : Expression] [true : Expression] [false : Expression]) #:transparent)
 (struct ast-let ([id-exp-list : (Listof (Pairof ast-identifier Expression))] [expression : Expression]) #:transparent)
@@ -15,8 +16,8 @@
 (struct ast-begin ([exp-list : (Listof Expression)]) #:transparent)
 (struct ast-assign ([id : ast-identifier] [expression : Expression]) #:transparent)
 
-(define-type Expression (U ast-number ast-boolean ast-identifier ast-if ast-let ast-let ast-operation ast-emptylist ast-proc ast-proc-call ast-name-param-exp ast-let-rec ast-begin ast-assign))
+(define-type Expression (U ast-number ast-string ast-boolean ast-identifier ast-if ast-let ast-let ast-operation ast-emptylist ast-proc ast-proc-call ast-name-param-exp ast-let-rec ast-begin ast-assign))
 
-(provide (struct-out ast-number) (struct-out ast-boolean) (struct-out ast-identifier) (struct-out ast-if) (struct-out ast-if) (struct-out ast-let) (struct-out ast-operation)
+(provide (struct-out ast-number) (struct-out ast-string) (struct-out ast-boolean) (struct-out ast-identifier) (struct-out ast-if) (struct-out ast-if) (struct-out ast-let) (struct-out ast-operation)
           (struct-out ast-emptylist) (struct-out ast-proc) (struct-out ast-proc-call) (struct-out ast-let-rec) (struct-out ast-begin) (struct-out ast-name-param-exp)
           (struct-out ast-assign) Expression)

@@ -164,6 +164,9 @@
      (begin
        (set! register-val n)
        (apply-cont))]
+    [(ast-string s)
+     (begin (set! register-val s)
+            (apply-cont))]
     [(ast-identifier id)
      (begin
        (set! register-val (deref (apply-env (get-register-env) id)))
@@ -237,5 +240,7 @@
   (let ([ast : Expression (parse source-code)])
     (set! register-expression ast))
   (value-of/k))
+
+(println (run "let x = \"123\" in x"))
 
 (provide run)

@@ -16,6 +16,8 @@
 
 (define test-set "let x = 1 in begin set x = 2; x end")
 
+(define test-string "let x = \"123\" in x")
+
 (define interpreter-tests
   (test-suite
    "tests for eopl interpreter"
@@ -38,7 +40,10 @@
     (check-equal? 1 (run multi-branch-let)))
    (test-case
     "basic let"
-    (check-equal? 1 (run basic-let)))))
+    (check-equal? 1 (run basic-let)))
+   (test-case
+    "basic string"
+    (check-equal? "123" (run test-string)))))
 
 (module+ test
   (run-tests interpreter-tests))
