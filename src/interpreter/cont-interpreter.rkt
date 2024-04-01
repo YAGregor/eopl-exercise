@@ -4,13 +4,15 @@
          (only-in "built-in.rkt" Env extend-env extend-env-rec empty-env name-param-exp name-param-exp-name exp-procedure exp-procedure? ExpVal ref))
 
 (struct end-cont ())
-(struct if-cont ([true-exp : Expression] [false-exp : Expression] [parent-cont : Cont]))
-(struct let-cont ([identifiers : (Listof Symbol)] [exps : (Listof Expression)] [body-exp : Expression] [parent-cont : Cont]))
-(struct op-cont ([name : Symbol] [exist-exp-val : (Listof ExpVal)] [exps : (Listof Expression)] [parent-cont : Cont]))
-(struct rator-cont ([rands : (Listof Expression)] [parent-cont : Cont]))
-(struct rand-cont ([proc : exp-procedure] [param-exp-vals : (Listof ExpVal)] [param-exps : (Listof Expression)] [parent-cont : Cont]))
-(struct begin-cont ([exps : (Listof Expression)] [parent-cont : Cont]))
-(struct assign-cont  ([id : Symbol] [parent-cont : Cont]))
+(struct if-cont ([true-exp : Expression] [false-exp : Expression]  [env : Env] [parent-cont : Cont]))
+(struct let-cont ([identifiers : (Listof Symbol)] [exps : (Listof Expression)] [body-exp : Expression] [env : Env] [parent-cont : Cont]))
+(struct op-cont ([name : Symbol] [exist-exp-val : (Listof ExpVal)] [exps : (Listof Expression)] [env : Env] [parent-cont : Cont]))
+(struct rator-cont ([rands : (Listof Expression)] [env : Env] [parent-cont : Cont]))
+(struct rand-cont ([proc : exp-procedure] [param-exp-vals : (Listof ExpVal)] [param-exps : (Listof Expression)] [env : Env] [parent-cont : Cont]))
+(struct begin-cont ([exps : (Listof Expression)] [env : Env] [parent-cont : Cont]))
+(struct assign-cont  ([id : Symbol] [env : Env] [parent-cont : Cont]))
+(struct raise-cont ([parent-cont : Cont]))
+(struct try-cont ([catch-expression : Expression] [catch-id : Symbol] [parent-env : Env]))
 
 (define-type Cont (U end-cont if-cont let-cont op-cont rator-cont rand-cont begin-cont assign-cont))
 
@@ -25,221 +27,138 @@
        [(name-param-exp n p exp) (newref (exp-procedure (list p) exp applied-env))]
        [_ (apply-env parent id)])]))
 
-
-(: register-val (Union Void ExpVal))
-(define register-val (void))
-(define (get-register-val) (cast register-val ExpVal))
-
-(: register-env (Union Void Env))
-(define register-env (void))
-(define (get-register-env) (cast register-env Env))
-
-(: register-cont (Union Void Cont))
-(define register-cont (void))
-(define (get-register-cont) (cast register-cont Cont))
-
-
-(: register-expression (Union Void Expression))
-(define register-expression (void))
-(define (get-register-epxression) (cast register-expression Expression))
-
-(: register-proc (Union Void exp-procedure))
-(define register-proc (void))
-(define (get-register-proc) (cast register-proc exp-procedure))
-
-(: register-params (Union Void (Listof ExpVal)))
-(define register-params (void))
-(define (get-register-params) (cast register-params (Listof ExpVal)))
-
-(define (init-register )
-  (set! register-val (void))
-  (set! register-env (empty-env))
-  (set! register-cont (end-cont))
-  (set! register-expression (void))
-  (set! register-proc (void))
-  (set! register-params (void)))
-
-
-(: apply-cont (-> ExpVal))
-(define (apply-cont )
-  (match register-cont
-    [(? end-cont?) (begin (printf "end of computation ~s \n" register-val) (get-register-val))]
-    [(if-cont true-exp false-exp parent-cont)
-     (cond [register-val
-            (begin
-              (set! register-expression true-exp)
-              (set! register-cont parent-cont)
-              (value-of/k))]
+(: apply-cont (-> ExpVal Cont ExpVal))
+(define (apply-cont exp-val cont)
+  (match cont
+    [(? end-cont?) (begin (printf "end of computation ~s \n" exp-val) exp-val)]
+    [(if-cont true-exp false-exp env parent-cont)
+     (cond [exp-val
+            (value-of/k true-exp env parent-cont)]
            [else
-            (begin
-              (set! register-expression false-exp)
-              (set! register-cont parent-cont)
-              (value-of/k))])]
-    [(let-cont ids exps body parent-cont)
+            (value-of/k false-exp env parent-cont)])]
+    [(let-cont ids exps body env parent-cont)
      (match exps
        [(list )
-        (begin
-          (set! register-env (extend-env (get-register-env) (car ids) (newref (get-register-val))))
-          (set! register-cont parent-cont)
-          (set! register-expression body)
-          (value-of/k))]
+        (value-of/k body (extend-env env (car ids) (newref exp-val)) parent-cont)]
        [(list first-exp rest-exp ...)
-        (begin
-          (set! register-expression first-exp)
-          (set! register-env (extend-env (get-register-env) (car ids) (newref (get-register-val))))
-          (set! register-cont (let-cont (cdr ids) rest-exp body parent-cont))
-          (value-of/k))])]
-    [(op-cont name exits-exp-val exps parent-cont)
+        (value-of/k
+         first-exp
+         (extend-env env (car ids) (newref exp-val))
+         (let-cont (cdr ids) rest-exp body env parent-cont))])]
+    [(op-cont name exits-exp-val exps env parent-cont)
      (match exps
        [(list )
-        (begin
-          (set! register-cont parent-cont)
-          (set! register-val (value-of-op name (reverse (cons (get-register-val) exits-exp-val))))
-          (apply-cont))]
+        (apply-cont (value-of-op name (reverse (cons exp-val exits-exp-val))) parent-cont)]
        [(list first-exp rest-exp ...)
-        (begin
-          (set! register-expression first-exp)
-          (set! register-cont (op-cont name (cons (get-register-val) exits-exp-val) rest-exp parent-cont))
-          (value-of/k))])]
-    [(rator-cont rands parent-cont)
-     (match register-val
+        (value-of/k first-exp
+                    env
+                    (op-cont name
+                             (cons exp-val exits-exp-val)
+                             rest-exp
+                             env
+                             parent-cont))])]
+    [(rator-cont rands env parent-cont)
+     (match exp-val
        [(exp-procedure param-list body proc-env)
         (match rands
           [(list )
-           (begin
-             (set! register-cont parent-cont)
-             (set! register-proc (cast (get-register-val) exp-procedure))
-             (set! register-params (list ))
-             (value-of-proc-call/k))]
+           (value-of-proc-call/k (cast exp-val exp-procedure) (list ) cont)]
           [(list first-exp rest-exp ...)
-           (begin
-             (set! register-expression first-exp)
-             (set! register-cont (rand-cont (cast (get-register-val) exp-procedure) (list ) rest-exp parent-cont))
-             (value-of/k))])])]
-    [(rand-cont proc param-exp-vals param-exps parent-cont)
+           (value-of/k first-exp env (rand-cont (cast exp-val exp-procedure) (list ) rest-exp env parent-cont))])])]
+    [(rand-cont proc param-exp-vals param-exps env parent-cont)
      (match param-exps
        [(list )
-        (begin
-          (set! register-proc proc)
-          (set! register-params (reverse (cons (get-register-val) param-exp-vals)))
-          (set! register-cont parent-cont)
-          (value-of-proc-call/k))]
+        (value-of-proc-call/k proc
+                              (reverse (cons exp-val param-exp-vals))
+                              parent-cont)]
        [(list first-param rest-params ...)
-        (begin
-          (set! register-expression first-param)
-          (set! register-cont ( rand-cont proc (cons (get-register-val) param-exp-vals) rest-params parent-cont ))
-          (value-of/k))])]
-    [(begin-cont exps parent-cont)
+        (value-of/k first-param
+                    env
+                    (rand-cont proc
+                               (cons exp-val param-exp-vals)
+                               rest-params
+                               env
+                               parent-cont))])]
+    [(begin-cont exps env parent-cont)
      (match exps
        [(list )
-        (begin
-          (set! register-cont parent-cont)
-          (apply-cont))]
+        (apply-cont exp-val parent-cont)]
        [(list first-exp rest-exps ...)
-        (begin
-          (set! register-expression first-exp)
-          (set! register-cont (begin-cont rest-exps parent-cont))
-          (value-of/k))])]
-    [(assign-cont id parent-cont)
+        (value-of/k first-exp
+                    env
+                    (begin-cont rest-exps env parent-cont))])]
+    [(assign-cont id env parent-cont)
      (begin
-       (setref! (apply-env (get-register-env) id) (get-register-val))
-       (set! register-cont parent-cont)
-       (set! register-val 1)
-       (apply-cont))]))
+       (setref! (apply-env env id) exp-val)
+       (apply-cont 1 parent-cont))]))
 
-(: value-of-proc-call/k (-> ExpVal))
-(define (value-of-proc-call/k)
-  (match register-proc
+(: value-of-proc-call/k (-> exp-procedure (Listof ExpVal) Cont ExpVal))
+(define (value-of-proc-call/k proc param-vals cont)
+  (match proc
     [(exp-procedure param-exps body proc-env)
-     (begin
-       (set! register-expression body)
-       (set! register-env
-             (foldl (lambda ([id : Symbol] [exp-val : ExpVal] [pre-env : Env] ) (extend-env pre-env id (newref exp-val))) proc-env param-exps (get-register-params)))
-       (value-of/k))]))
+     (value-of/k body
+                 (foldl (lambda ([id : Symbol] [exp-val : ExpVal] [pre-env : Env] ) (extend-env pre-env id (newref exp-val))) proc-env param-exps param-vals)
+                 cont)]))
 
-(: value-of/k (->  ExpVal))
-(define (value-of/k)
-  (match register-expression
+(: value-of/k (-> Expression Env Cont ExpVal))
+(define (value-of/k expression env cont)
+  (match expression
     [(ast-number n)
-     (begin
-       (set! register-val n)
-       (apply-cont))]
+     (apply-cont n cont)]
     [(ast-string s)
-     (begin (set! register-val s)
-            (apply-cont))]
+     (apply-cont s cont)]
     [(ast-identifier id)
-     (begin
-       (set! register-val (deref (apply-env (get-register-env) id)))
-       (apply-cont))]
-    [(ast-proc param-exps body )
-     (begin
-       (set! register-val (exp-procedure (map ast-identifier-symbol param-exps) body (get-register-env)))
-       (apply-cont))]
+     (apply-cont (deref (apply-env env id)) cont)]
+    [(ast-proc param-exps body)
+     (apply-cont
+      (exp-procedure (map ast-identifier-symbol param-exps) body env)
+      cont)]
     [(ast-if cond-exp true-exp false-exp)
-     (begin
-       (set! register-expression cond-exp)
-       (set! register-cont (if-cont true-exp false-exp (get-register-cont)))
-       (value-of/k))]
+     (value-of/k cond-exp env (if-cont true-exp false-exp env cont))]
     [(ast-let id-exp-list body)
      (match id-exp-list
        [(list (cons (ast-identifier first-id) first-exp) rest-id-exp-list ...)
-        (begin
-          (set! register-expression first-exp)
-          (set! register-cont (let-cont
-                               (map (lambda ([x : (Pairof ast-identifier Expression)]) (ast-identifier-symbol (car x))) id-exp-list)
-                               (map (lambda ([x : (Pairof ast-identifier Expression)]) (cdr x)) rest-id-exp-list)
-                               body (get-register-cont)))
-          (value-of/k))])
-     ]
+        (value-of/k first-exp env
+                    (let-cont (map (lambda ([x : (Pairof ast-identifier Expression)]) (ast-identifier-symbol (car x))) id-exp-list)
+                              (map (lambda ([x : (Pairof ast-identifier Expression)]) (cdr x)) rest-id-exp-list)
+                              body
+                              env
+                              cont))])]
     [(ast-let-rec name-param-exp-list body)
-     (begin
-       (set! register-expression body)
-       (set! register-env
-             (extend-env-rec
-              (get-register-env)
-              (map (lambda ([x : ast-name-param-exp])
-                     (match x
-                       [(ast-name-param-exp
-                         (ast-identifier n)
-                         (ast-identifier p)
-                         e)
-                        (name-param-exp n p e)]))
-                   name-param-exp-list)))
-       (value-of/k))]
+     (value-of/k body
+                 (extend-env-rec
+                  env
+                  (map (lambda ([x : ast-name-param-exp])
+                         (match x
+                           [(ast-name-param-exp (ast-identifier n) (ast-identifier p) e)
+                            (name-param-exp n p e)]))
+                       name-param-exp-list))
+                 cont)]
     [(ast-proc-call proc-exp param-exp-list)
-     (begin
-       (set! register-expression proc-exp)
-       (set! register-cont (rator-cont param-exp-list (get-register-cont)))
-       (value-of/k))]
+     (value-of/k proc-exp env (rator-cont param-exp-list env cont))]
     [(ast-operation id params)
      (match params
        [(list )
-        (value-of-op id (list ))]
+        (apply-cont (value-of-op id (list )) cont)]
        [(list first-param rest-params ...)
-        (begin
-          (set! register-expression first-param)
-          (set! register-cont  (op-cont id (list ) rest-params (get-register-cont)))
-          (value-of/k))])]
+        (value-of/k first-param
+                    env
+                    (op-cont id (list ) rest-params env cont))])]
     [(ast-begin exps)
      (match exps
        [(list first-exp rest-exp ...)
-        (begin
-          (set! register-expression first-exp)
-          (set! register-cont (begin-cont rest-exp (get-register-cont)))
-          (value-of/k))])]
+        (value-of/k first-exp env (begin-cont rest-exp env cont))])]
     [(ast-assign (ast-identifier id) assign-exp)
-     (begin
-       (set! register-expression assign-exp)
-       (set! register-cont  (assign-cont id (get-register-cont)))
-       (value-of/k))]))
+     (value-of/k assign-exp env (assign-cont id env cont))]))
 
 
 (: run (-> String ExpVal))
 (define (run source-code)
-  (init-register )
+  (initialize-the-store!)
   (let ([ast : Expression (parse source-code)])
-    (set! register-expression ast))
-  (value-of/k))
+    (value-of/k ast
+                (empty-env)
+                (end-cont))))
 
 (println (run "let x = \"123\" in x"))
 
