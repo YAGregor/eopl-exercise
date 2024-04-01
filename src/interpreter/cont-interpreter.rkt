@@ -41,10 +41,12 @@
        [(list )
         (value-of/k body (extend-env env (car ids) (newref exp-val)) parent-cont)]
        [(list first-exp rest-exp ...)
-        (value-of/k
-         first-exp
-         (extend-env env (car ids) (newref exp-val))
-         (let-cont (cdr ids) rest-exp body env parent-cont))])]
+        (value-of/k first-exp
+                    env
+                    (let-cont (cdr ids)
+                              rest-exp
+                              body
+                              (extend-env env (car ids) (newref exp-val)) parent-cont))])]
     [(op-cont name exits-exp-val exps env parent-cont)
      (match exps
        [(list )
@@ -62,9 +64,17 @@
        [(exp-procedure param-list body proc-env)
         (match rands
           [(list )
-           (value-of-proc-call/k (cast exp-val exp-procedure) (list ) cont)]
+           (value-of-proc-call/k (cast exp-val exp-procedure)
+                                 (list )
+                                 parent-cont)]
           [(list first-exp rest-exp ...)
-           (value-of/k first-exp env (rand-cont (cast exp-val exp-procedure) (list ) rest-exp env parent-cont))])])]
+           (value-of/k first-exp
+                       env
+                       (rand-cont (cast exp-val exp-procedure)
+                                  (list )
+                                  rest-exp
+                                  env
+                                  parent-cont))])])]
     [(rand-cont proc param-exp-vals param-exps env parent-cont)
      (match param-exps
        [(list )
@@ -94,10 +104,15 @@
 
 (: value-of-proc-call/k (-> exp-procedure (Listof ExpVal) Cont ExpVal))
 (define (value-of-proc-call/k proc param-vals cont)
+  (println "value of proc call!")
   (match proc
     [(exp-procedure param-exps body proc-env)
      (value-of/k body
-                 (foldl (lambda ([id : Symbol] [exp-val : ExpVal] [pre-env : Env] ) (extend-env pre-env id (newref exp-val))) proc-env param-exps param-vals)
+                 (foldl (lambda ([id : Symbol] [exp-val : ExpVal] [pre-env : Env] )
+                          (extend-env pre-env id (newref exp-val)))
+                        proc-env
+                        param-exps
+                        param-vals)
                  cont)]))
 
 (: value-of/k (-> Expression Env Cont ExpVal))
@@ -108,7 +123,8 @@
     [(ast-string s)
      (apply-cont s cont)]
     [(ast-identifier id)
-     (apply-cont (deref (apply-env env id)) cont)]
+     (let ([value (deref (apply-env env id))])
+       (apply-cont value cont))]
     [(ast-proc param-exps body)
      (apply-cont
       (exp-procedure (map ast-identifier-symbol param-exps) body env)
@@ -130,7 +146,9 @@
                   env
                   (map (lambda ([x : ast-name-param-exp])
                          (match x
-                           [(ast-name-param-exp (ast-identifier n) (ast-identifier p) e)
+                           [(ast-name-param-exp (ast-identifier n)
+                                                (ast-identifier p)
+                                                e)
                             (name-param-exp n p e)]))
                        name-param-exp-list))
                  cont)]
@@ -139,17 +157,27 @@
     [(ast-operation id params)
      (match params
        [(list )
-        (apply-cont (value-of-op id (list )) cont)]
+        (apply-cont
+         (value-of-op id (list ))
+         cont)]
        [(list first-param rest-params ...)
         (value-of/k first-param
                     env
-                    (op-cont id (list ) rest-params env cont))])]
+                    (op-cont id
+                             (list )
+                             rest-params
+                             env
+                             cont))])]
     [(ast-begin exps)
      (match exps
        [(list first-exp rest-exp ...)
-        (value-of/k first-exp env (begin-cont rest-exp env cont))])]
+        (value-of/k first-exp
+                    env
+                    (begin-cont rest-exp env cont))])]
     [(ast-assign (ast-identifier id) assign-exp)
-     (value-of/k assign-exp env (assign-cont id env cont))]))
+     (value-of/k assign-exp
+                 env
+                 (assign-cont id env cont))]))
 
 
 (: run (-> String ExpVal))
@@ -159,7 +187,5 @@
     (value-of/k ast
                 (empty-env)
                 (end-cont))))
-
-(println (run "let x = \"123\" in x"))
 
 (provide run)
