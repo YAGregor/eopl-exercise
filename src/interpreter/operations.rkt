@@ -110,8 +110,12 @@
        (set-exp-array-refs! array (list-set (exp-array-refs array) index (newref value)))
        array)]))
 
+(define (op-null? params)
+ (exp-empty-list? (car params)))
+
 (define (value-of-op op-name params)
   ((match op-name
+     ['null? op-null?]
      ['zero? op-zero?]
      ['minus op-minus]
      ['equal? op-equals?]

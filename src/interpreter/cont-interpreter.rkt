@@ -12,9 +12,9 @@
 (struct begin-cont ([exps : (Listof Expression)] [env : Env] [parent-cont : Cont]))
 (struct assign-cont  ([id : Symbol] [env : Env] [parent-cont : Cont]))
 (struct raise-cont ([parent-cont : Cont]))
-(struct try-cont ([catch-expression : Expression] [catch-id : Symbol] [parent-env : Env]))
+(struct try-cont ([catch-expression : Expression] [catch-id : Symbol] [parent-env : Env] [parent-cont : Cont]))
 
-(define-type Cont (U end-cont if-cont let-cont op-cont rator-cont rand-cont begin-cont assign-cont))
+(define-type Cont (U end-cont if-cont let-cont op-cont rator-cont rand-cont begin-cont assign-cont raise-cont try-cont))
 
 (: apply-env (-> Env Symbol ref))
 (define (apply-env applied-env id)
@@ -100,11 +100,35 @@
     [(assign-cont id env parent-cont)
      (begin
        (setref! (apply-env env id) exp-val)
-       (apply-cont 1 parent-cont))]))
+       (apply-cont 1 parent-cont))]
+    [(raise-cont parent-cont) (apply-raise exp-val parent-cont)]
+    [(try-cont raise-brach bind-id env parent-cont) (apply-cont exp-val parent-cont)]))
+
+(: apply-raise (-> ExpVal Cont ExpVal))
+(define (apply-raise exp-val cont)
+  (match cont
+    [(? end-cont?) (error "error raise reach end cont")]
+    [(? if-cont?)
+     (apply-raise exp-val (if-cont-parent-cont cont))]
+    [(? let-cont?)
+     (apply-raise exp-val (let-cont-parent-cont cont))]
+    [(? op-cont?)
+     (apply-raise exp-val (op-cont-parent-cont cont))]
+    [(? rator-cont?)
+     (apply-raise exp-val (rator-cont-parent-cont cont))]
+    [(? rand-cont?)
+     (apply-raise exp-val (rand-cont-parent-cont cont))]
+    [(? begin-cont?)
+     (apply-raise exp-val (begin-cont-parent-cont cont))]
+    [(? assign-cont?) (apply-cont exp-val (assign-cont-parent-cont cont))]
+    [(? raise-cont?) (apply-cont exp-val (raise-cont-parent-cont cont))]
+    [(try-cont catch-exp catch-id parent-env parent-cont)
+     (value-of/k catch-exp
+                 (extend-env parent-env catch-id (newref exp-val))
+                 parent-cont)]))
 
 (: value-of-proc-call/k (-> exp-procedure (Listof ExpVal) Cont ExpVal))
 (define (value-of-proc-call/k proc param-vals cont)
-  (println "value of proc call!")
   (match proc
     [(exp-procedure param-exps body proc-env)
      (value-of/k body
@@ -177,8 +201,13 @@
     [(ast-assign (ast-identifier id) assign-exp)
      (value-of/k assign-exp
                  env
-                 (assign-cont id env cont))]))
-
+                 (assign-cont id env cont))]
+    [(ast-raise expression)
+     (value-of/k expression
+                 env
+                 (raise-cont cont))]
+    [(ast-try try-branch (ast-identifier id-symbol) catch-branch)
+     (value-of/k try-branch env (try-cont catch-branch id-symbol env cont))]))
 
 (: run (-> String ExpVal))
 (define (run source-code)

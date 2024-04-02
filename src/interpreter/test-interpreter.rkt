@@ -18,32 +18,39 @@
 
 (define test-string "let x = \"123\" in x")
 
+(define test-try-catch "
+let list-index = proc (str)
+        letrec inner (lst) = if null?(lst)
+                                then raise \"ListIndexFailed\"
+                                else if equal?(car(lst), str)
+                                        then 0
+                                        else -((inner cdr(lst)), -1)
+        in inner
+    in try ((list-index 5) list(1, 2, 3, 4)) 
+           catch (e) e
+")
+
 (define interpreter-tests
   (test-suite
    "tests for eopl interpreter"
    (test-case "set" (check-equal? 2 (run test-set)))
    (test-case "begin" (check-equal? 3 (run test-begin)))
-   (test-case
-    "proc"
-    (check-equal? 1 (run test-proc)))
-   (test-case
-    "letrec"
-    (check-equal? 0 (run test-let-rec)))
-   (test-case
-    "if"
-    (check-equal? 3 (run test-if)))
-   (test-case
-    "operation call"
-    (check-equal? (exp-list-pair-value (run test-opreration)) 1))
-   (test-case
-    "multi branch let"
-    (check-equal? 1 (run multi-branch-let)))
-   (test-case
-    "basic let"
-    (check-equal? 1 (run basic-let)))
-   (test-case
-    "basic string"
-    (check-equal? "123" (run test-string)))))
+   (test-case "proc"
+              (check-equal? 1 (run test-proc)))
+   (test-case "letrec"
+              (check-equal? 0 (run test-let-rec)))
+   (test-case "if"
+              (check-equal? 3 (run test-if)))
+   (test-case "operation call"
+              (check-equal? (exp-list-pair-value (run test-opreration)) 1))
+   (test-case "multi branch let"
+              (check-equal? 1 (run multi-branch-let)))
+   (test-case "basic let"
+              (check-equal? 1 (run basic-let)))
+   (test-case "basic string"
+              (check-equal? "123" (run test-string)))
+   (test-case "try-catch"
+              (check-equal? "ListIndexFailed" (run test-try-catch)))))
 
 (module+ test
   (run-tests interpreter-tests))

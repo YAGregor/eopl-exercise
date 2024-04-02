@@ -42,7 +42,7 @@
    ["catch" (token-CATCH)]
    [#\= (token-EQ)]
    [(:or "zero?" "minus" "equal?" "greater?" "less?" #\+  #\- #\* #\/
-         "cons" "list" "car" "cdr" "not" "pair" "left" "right"
+         "cons" "list" "car" "cdr" "not" "pair" "left" "right" "null?" "string-equal?"
          "setref"
          "setleft" "setright"
          "newarray" "arrayref" "arrayset")
@@ -170,7 +170,9 @@
   (do (token/p 'TRY)
     [try-branch <- expression/p]
     (token/p 'CATCH)
+    (token/p 'LPAREN)
     [catch-id <- identifier/p]
+    (token/p 'RPAREN)
     [catch-expression <- expression/p]
     (pure (ast-try try-branch catch-id catch-expression))))
 
