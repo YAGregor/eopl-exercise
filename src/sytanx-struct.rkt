@@ -4,7 +4,7 @@
 (struct zero?-exp ([exp : Expression]) #:transparent)
 (struct if-exp ([cond-exp : Expression] [true-exp : Expression] [false-exp : Expression]) #:transparent)
 (struct let-exp ([id : Symbol] [bind-exp : Expression] [body : Expression]) #:transparent)
-(struct let-rec-exp ([id : Symbol] [params : (Listof Symbol)] [body : Expression]) #:transparent)
+(struct let-rec-exp ([id : Symbol] [params : (Listof Symbol)] [body : Expression] [in : Expression]) #:transparent)
 (struct proc-exp ([params : (Listof Symbol)] [body : Expression]) #:transparent)
 (struct call-exp ([rator : Expression] [rands : (Listof Expression)]) #:transparent)
 

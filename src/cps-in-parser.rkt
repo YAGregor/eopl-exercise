@@ -93,7 +93,9 @@
     (token/p 'RPAREN)
     (token/p 'EQ)
     [body <- expression/p]
-    (let-rec-exp id id-list body)))
+    (token/p 'IN)
+    [in <- expression/p]
+    (let-rec-exp id id-list body in)))
 
 (define diff/p
   (do (token/p 'DIFF)
