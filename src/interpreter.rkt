@@ -37,7 +37,7 @@
 (: apply-cont (-> Cont ExpVal ExpVal))
 (define (apply-cont cont exp-val )
   (match cont
-    [(? end-cont?) (begin (println (list "end of computation" exp-val)) exp-val)]
+    [(? end-cont?) (begin (println (format "end of computation ~a" exp-val)) exp-val)]
     [(diff-cont exp2 parent-cont env)
      (value-of/k exp2
                  env
