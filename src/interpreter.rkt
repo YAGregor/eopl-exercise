@@ -43,9 +43,10 @@
                  env
                  (diff-2-cont (cast exp-val Number)
                               parent-cont env))]
+    [(diff-2-cont exp1 parent-cont env) (apply-cont parent-cont (- exp1 (cast exp-val Number)))]
     [(zero-cont parent-cont)
      (apply-cont parent-cont
-                 (eq? exp-val true))]
+                 (eq? exp-val 0))]
     [(if-cont true-exp false-exp parent-cont env)
      (cond [exp-val
             (value-of/k true-exp env parent-cont)]
@@ -64,7 +65,9 @@
     [(rand-cont rator rand-exp-list rand-exp-val-list parent-cont env)
      (match rand-exp-list
        [(list )
-        (apply-proc-call rator rand-exp-val-list env parent-cont)]
+        (apply-proc-call rator
+                         (reverse (cons exp-val rand-exp-val-list))
+                         env parent-cont)]
        [(list first-exp rest-exp ...)
         (value-of/k first-exp env (rand-cont rator rest-exp (cons exp-val rand-exp-val-list) parent-cont env))])]))
 

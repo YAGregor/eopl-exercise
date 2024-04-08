@@ -27,7 +27,7 @@
    ["else" (token-ELSE)]
    ["if" (token-IF)]
    ["proc" (token-PROC)]
-   ["retrec" (token-LET-REC)]
+   ["letrec" (token-LET-REC)]
    ["-" (token-DIFF)]
    ["zero?" (token-ZERO)]
    [(:: (:? (:or #\+ #\-)) (:+ numeric))(token-NUMBER (string->number lexeme))]
@@ -95,7 +95,7 @@
     [body <- expression/p]
     (token/p 'IN)
     [in <- expression/p]
-    (let-rec-exp id id-list body in)))
+    (pure (let-rec-exp id id-list body in))))
 
 (define diff/p
   (do (token/p 'DIFF)
