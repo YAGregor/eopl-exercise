@@ -26,25 +26,22 @@
     [(call-exp rator rands)
      (let ([rator-dump (dump rator)]
            [rand-dump
-            (let #{iter : (-> (Listof Expression) String String)}
-              ([rands rands] [result ""])
-              (match rands
-                [(list ) result]
-                [(list f r ...) (iter r (format "~a ~a" (dump f) result))]))])
+            (foldl (lambda (#{v : Expression} acc) (format "~a ~a" acc (dump v)))
+                   "" rands)])
        (format "(~a ~a)" rator-dump rand-dump))]))
 
 (: dump-let-rec-exp (-> let-rec-exp String))
 (define (dump-let-rec-exp expression)
   (match expression
     [(let-rec-exp id params body in)
-     (format "letrec ~a (~a) = ~a in ~a"
+     (format "letrec ~a (~a) = ~a \n in ~a"
              id (dump-params params) (dump body) (dump in))]))
 
 (: dump-let-exp (-> let-exp String))
 (define (dump-let-exp expression)
   (match expression
     [(let-exp id bind in)
-     (format "let ~a = ~a in ~a"
+     (format "let ~a = ~a \n in ~a"
              id (dump bind) (dump in))]))
 
 (: dump-zero-exp (-> zero?-exp String))
@@ -55,13 +52,13 @@
 (: dump-diff-exp (-> diff-exp String))
 (define (dump-diff-exp expression)
   (match expression
-    [(diff-exp e1 e2) (format  "diff(~a,~a)" (dump e1) (dump e2))]))
+    [(diff-exp e1 e2) (format  "-(~a,~a)" (dump e1) (dump e2))]))
 
 (: dump-if-exp (-> if-exp String))
 (define (dump-if-exp expression)
   (match expression
     [(if-exp c-e t-e f-e)
-     (format "if ~a then ~a else ~a"
+     (format "if ~a \n then \n ~a else \n ~a"
              (dump c-e) (dump t-e) (dump f-e))]))
 
 (: dump (-> Expression String))

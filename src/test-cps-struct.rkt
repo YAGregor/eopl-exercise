@@ -2,6 +2,7 @@
 
 (require "cps-of-exp.rkt"
          "dump-cps-out.rkt"
+         "interpreter.rkt"
          rackunit
          rackunit/text-ui
          (prefix-in in: "cps-in-parser.rkt")
@@ -18,20 +19,23 @@ letrec fib (n) = if zero?(-(n, 1)) then 1
                                  if zero?(-(n, 2)) then 1
                                                   else -((fib -(n, 1)),
                                                          -(0, (fib -(n, 2))))
-                in (fib 5)
+                in (fib 6)
 ")
+
+(define (test-fib )
+  (let* ([in-exp (in:parse fib-code)]
+         [out-exp (cps-of-exp in-exp simple-k-exp)]
+         [out-dump (dump out-exp)])
+    (displayln out-exp)
+    (displayln fib-code)
+    (displayln " \n >>> after cps... \n")
+    (displayln out-dump)
+    (newline)
+    (run out-dump)))
 
 (define transform-tests
   (test-suite "transform-tests"
-              (test-case "basic"
-                         (println (cps-of-exp (in:parse transform-basic) simple-k-exp)))
-              (test-case "fib"
-                         (println (cps-of-exp (in:parse fib-code) simple-k-exp)))
-              (test-case "dump-fib"
-                         (println
-                          (dump
-                           (cps-of-exp
-                            (in:parse fib-code) simple-k-exp))))))
+              (test-case "simpler"
+                         (check-equal? 8 (test-fib)))))
 
 (module+ test (run-tests transform-tests))
-
