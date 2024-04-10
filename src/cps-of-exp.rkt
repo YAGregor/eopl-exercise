@@ -135,3 +135,5 @@
     [(? in:let-exp?) (cps-of-let-exp in-exp k-exp)]
     [(? in:let-rec-exp?) (cps-of-let-rec-exp in-exp k-exp)]
     [(? in:call-exp?) (cps-of-call-exp in-exp k-exp)]))
+
+(provide cps-of-exp)
