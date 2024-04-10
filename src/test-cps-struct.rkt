@@ -8,7 +8,8 @@
          (prefix-in in: "cps-in-parser.rkt")
          (prefix-in in: "sytanx-struct.rkt")
          (prefix-in out: "cps-out-struct.rkt")
-         (prefix-in out: "cps-out-parser.rkt"))
+         (prefix-in out: "cps-out-parser.rkt")
+         (prefix-in out: "cps-out-interpreter.rkt"))
 
 (define transform-basic "proc (x) x")
 (define simple-k-exp (out:parse "proc (x) x"))
@@ -31,7 +32,7 @@ letrec fib (n) = if zero?(-(n, 1)) then 1
     (displayln " \n >>> after cps... \n")
     (displayln out-dump)
     (newline)
-    (run out-dump)))
+    (out:run out-dump)))
 
 (define transform-tests
   (test-suite "transform-tests"

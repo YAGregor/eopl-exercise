@@ -7,7 +7,7 @@
 (define fresh-identifier
   (let ([i 0])
     (lambda ()
-      (let ([result (string->symbol (format "gensym-~a" i))])
+      (let ([result (string->symbol (format "#-~a" i))])
         (set! i (+ i 1))
         result))))
 
@@ -23,7 +23,7 @@
     [(? in:proc-exp?) true]
     [_ false]))
 
-(define especial-k-param 'gensym-k)
+(define especial-k-param '\#-k)
 
 (: cps-of-simple-exp (-> in:Expression out:Simple-Exp))
 (define (cps-of-simple-exp expression)
