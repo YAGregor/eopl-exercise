@@ -31,7 +31,7 @@
    ["-" (token-DIFF)]
    ["zero?" (token-ZERO)]
    [(:: (:? (:or #\+ #\-)) (:+ numeric))(token-NUMBER (string->number lexeme))]
-   [(:: (:* numeric) (:+ (:or alphabetic #\-)) (:* numeric) (:* symbolic))
+   [(:: (:? #\#) (:* numeric) (:+ (:or alphabetic #\-)) (:* numeric) (:* symbolic))
     (token-IDENTIFIER (string->symbol lexeme))]
    [(eof) eof]))
 
@@ -60,15 +60,9 @@
     [false-exp <- expression/p]
     (pure (if-exp cond true-exp false-exp))))
 
-(define id-list-tail/p
-  (do (token/p 'COMMA)
-    [id <- identifier/p]
-    (pure id)))
-
 (define id-list/p
-  (do [id <- identifier/p]
-    [tail-id-list <- (many/p id-list-tail/p)]
-    (pure (list* id tail-id-list))))
+  (do [id-list <- (many+/p identifier/p)]
+    (pure id-list)))
 
 (define proc/p
   (do (token/p 'PROC)

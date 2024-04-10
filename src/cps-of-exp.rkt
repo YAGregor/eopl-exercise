@@ -7,7 +7,7 @@
 (define fresh-identifier
   (let ([i 0])
     (lambda ()
-      (let ([result (string->symbol (format "#~a"))])
+      (let ([result (string->symbol (format "#~a" i))])
         (set! i (+ i 1))
         result))))
 
