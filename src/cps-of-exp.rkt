@@ -75,6 +75,15 @@
                     (match exp-list
                       [(list e1 e2) (make-send-to-cont k-exp (out:diff-exp e1 e2))])))]))
 
+(: cps-of-print-exp (-> in:print-exp out:Simple-Exp out:Expression))
+(define (cps-of-print-exp print-exp k-exp)
+  (match print-exp
+    [(in:print-exp rand)
+     (cps-of-exps (list rand)
+                  (lambda (exp-list)
+                    (out:print-k-exp (car exp-list)
+                                     (make-send-to-cont k-exp 38))))]))
+
 (: cps-of-if-exp (-> in:if-exp out:Simple-Exp out:Expression))
 (define (cps-of-if-exp if-exp k-exp)
   (match if-exp
@@ -134,6 +143,7 @@
     [(? in:if-exp?) (cps-of-if-exp in-exp k-exp)]
     [(? in:let-exp?) (cps-of-let-exp in-exp k-exp)]
     [(? in:let-rec-exp?) (cps-of-let-rec-exp in-exp k-exp)]
-    [(? in:call-exp?) (cps-of-call-exp in-exp k-exp)]))
+    [(? in:call-exp?) (cps-of-call-exp in-exp k-exp)]
+    [(? in:print-exp?) (cps-of-print-exp in-exp k-exp)]))
 
 (provide cps-of-exp)

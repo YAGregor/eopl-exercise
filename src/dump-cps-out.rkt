@@ -54,6 +54,12 @@
   (match expression
     [(diff-exp e1 e2) (format  "-(~a,~a)" (dump e1) (dump e2))]))
 
+(: dump-print-exp (-> print-k-exp String))
+(define (dump-print-exp expression)
+  (match expression
+    [(print-k-exp rand return)
+     (format "print-k(~a);~a" (dump rand) (dump return))]))
+
 (: dump-if-exp (-> if-exp String))
 (define (dump-if-exp expression)
   (match expression
@@ -72,6 +78,7 @@
     [(? let-rec-exp?) (dump-let-rec-exp expression)]
     [(? let-exp?) (dump-let-exp expression)]
     [(? zero?-exp?) (dump-zero-exp expression)]
-    [(? diff-exp?) (dump-diff-exp expression)]))
+    [(? diff-exp?) (dump-diff-exp expression)]
+    [(? print-k-exp?) (dump-print-exp expression)]))
 
 (provide dump)
