@@ -11,8 +11,8 @@
 (define-tokens basic [IDENTIFIER NUMBER])
 (define-empty-tokens
   puct
-  [LPAREN RPAREN COMMA EQ IN LET THEN ELSE IF PROC LET-REC
-          DIFF ZERO])
+  [LPAREN RPAREN COMMA EQ IN LET THEN ELSE IF PROC LET-REC SIMICOLON
+          DIFF ZERO PRINT-K])
 
 (define lexer
   (lexer-src-pos
@@ -21,6 +21,7 @@
    [#\) (token-RPAREN)]
    [#\, (token-COMMA)]
    [#\= (token-EQ)]
+   [#\; (token-SIMICOLON)]
    ["in" (token-IN)]
    ["let" (token-LET)]
    ["then" (token-THEN)]
@@ -30,6 +31,7 @@
    ["letrec" (token-LET-REC)]
    ["-" (token-DIFF)]
    ["zero?" (token-ZERO)]
+   ["print-k" (token-PRINT-K)]
    [(:: (:? (:or #\+ #\-)) (:+ numeric))(token-NUMBER (string->number lexeme))]
    [(:: (:? #\#) (:* numeric) (:+ (:or alphabetic #\-)) (:* numeric) (:* symbolic))
     (token-IDENTIFIER (string->symbol lexeme))]
@@ -107,9 +109,18 @@
     (token/p 'RPAREN)
     (pure (zero?-exp z-exp))))
 
+(define print-k-p
+  (do (token/p 'PRINT-K)
+    (token/p 'LPAREN)
+    [print-exp <- simple-exp/p]
+    (token/p 'RPAREN)
+    (token/p 'SIMICOLON)
+    (return-exp <- expression/p)
+    (pure (print-k-exp print-exp return-exp))))
+
 (define simple-exp/p (or/p number/p identifier/p proc/p zero-exp/p diff/p))
 
-(define expression/p (or/p number/p identifier/p let/p if/p proc/p proc-call/p letrec/p diff/p zero-exp/p))
+(define expression/p (or/p number/p identifier/p let/p if/p proc/p proc-call/p letrec/p diff/p zero-exp/p print-k-p))
 
 (define program/p
   (do [p <- expression/p]

@@ -11,11 +11,12 @@
 (struct diff-cont ([exp2 : Expression] [parent-cont : Cont] [env : Env]))
 (struct diff-2-cont ([exp-val : Number] [parent-cont : Cont] [env : Env]))
 (struct zero-cont ([parent-cont : Cont]))
+(struct print-k-cont ([return-exp : Expression] [parent-cont : Cont] [env : Env]))
 (struct if-cont ([true-exp : Expression] [false-exp : Expression] [parent-cont : Cont] [env : Env]))
 (struct let-cont ([id : Symbol] [in-exp : Expression] [parent-cont : Cont] [env : Env]))
 (struct rator-cont ([rand-list : (Listof Expression)] [parent-cont : Cont] [env : Env]))
 (struct rand-cont ([rator-exp-val : proc] [rand-exp-list : (Listof Expression)] [rand-exp-val-list : (Listof ExpVal)] [parent-cont : Cont] [env : Env]))
-(define-type Cont (U end-cont diff-cont diff-2-cont zero-cont if-cont let-cont rator-cont rand-cont))
+(define-type Cont (U end-cont diff-cont diff-2-cont zero-cont if-cont let-cont rator-cont rand-cont print-k-cont))
 
 (struct empty-env ())
 (struct extend-env ([parent : Env] [id : Symbol] [value : ExpVal]))
@@ -48,6 +49,10 @@
     [(zero-cont parent-cont)
      (apply-cont parent-cont
                  (eq? exp-val 0))]
+    [(print-k-cont return-exp parent-cont env)
+     (begin
+       (println exp-val)
+       (value-of/k return-exp env parent-cont))]
     [(if-cont true-exp false-exp parent-cont env)
      (cond [exp-val
             (value-of/k true-exp env parent-cont)]
@@ -95,6 +100,8 @@
      (value-of/k exp1 env (diff-cont exp2 cont env))]
     [(zero?-exp exp1)
      (value-of/k exp1 env (zero-cont cont))]
+    [(print-k-exp print-exp return-exp)
+     (value-of/k print-exp env (print-k-cont return-exp cont env))]
     [(if-exp cond-exp true-exp false-exp)
      (value-of/k cond-exp env (if-cont true-exp false-exp cont env))]
     [(let-exp id bind body)
