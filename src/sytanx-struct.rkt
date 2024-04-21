@@ -7,7 +7,8 @@
 (struct let-rec-exp ([id : Symbol] [params : (Listof Symbol)] [body : Expression] [in : Expression]) #:transparent)
 (struct proc-exp ([params : (Listof Symbol)] [body : Expression]) #:transparent)
 (struct call-exp ([rator : Expression] [rands : (Listof Expression)]) #:transparent)
+(struct print-exp ([rator : Expression]) #:transparent)
 
-(define-type Expression (U Number Boolean Symbol diff-exp zero?-exp if-exp let-exp let-rec-exp proc-exp call-exp))
+(define-type Expression (U Number Boolean Symbol diff-exp zero?-exp if-exp let-exp let-rec-exp proc-exp call-exp print-exp))
 
 (provide (all-defined-out))

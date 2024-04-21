@@ -12,7 +12,7 @@
 (define-empty-tokens
   puct
   [LPAREN RPAREN COMMA EQ IN LET THEN ELSE IF PROC LET-REC
-          DIFF ZERO])
+          DIFF ZERO PRINT])
 
 (define lexer
   (lexer-src-pos
@@ -30,6 +30,7 @@
    ["letrec" (token-LET-REC)]
    ["-" (token-DIFF)]
    ["zero?" (token-ZERO)]
+   ["print" (token-PRINT)]
    [(:: (:? (:or #\+ #\-)) (:+ numeric))(token-NUMBER (string->number lexeme))]
    [(:: (:* numeric) (:+ (:or alphabetic #\-)) (:* numeric) (:* symbolic))
     (token-IDENTIFIER (string->symbol lexeme))]
@@ -107,7 +108,14 @@
     (token/p 'RPAREN)
     (pure (zero?-exp z-exp))))
 
-(define expression/p (or/p number/p identifier/p let/p if/p proc/p proc-call/p letrec/p diff/p zero-exp/p))
+(define print/p
+  (do (token/p 'PRINT)
+    (token/p 'LPAREN)
+    [p-exp <- expression/p]
+    (token/p 'RPAREN)
+    (pure (print-exp p-exp))))
+
+(define expression/p (or/p number/p identifier/p let/p if/p proc/p proc-call/p letrec/p diff/p zero-exp/p print/p))
 
 (define program/p
   (do [p <- expression/p]
